@@ -82,6 +82,7 @@ int main (int argc, char *argv[])
 		command[strcspn(command,"\n")]=0; // adding the \n
 
         if (!strncmp(command, "QUIT", 4) || !strncmp(command, "quit", 4)) {
+            send(server_fd,"QUIT",4,0);
             close(server_fd);
             break;
         }
@@ -90,33 +91,33 @@ int main (int argc, char *argv[])
             command[strcspn(command,"\n")]=0;
             send(server_fd,command,strlen(command),0);
             recv(server_fd,response,sizeof(response),0);
-            printf("Response: %s\n", response);
+            printf("%s\n", response);
         }
 
         else if (!strncmp(command, "PASS", 4)) {
             command[strcspn(command,"\n")]=0;
             send(server_fd,command,strlen(command),0);
             recv(server_fd,response,sizeof(response),0);
-            printf("Response: %s\n", response);
+            printf("%s\n", response);
         }
 
         else if (!strncmp(command, "PUT", 3)) {
-            printf("");
+            printf("PUT command will be supported in a later release.\n");
         }
 
         else if (!strncmp(command, "GET", 3)) {
-            printf("");
+            printf("GET command will be supported in a later release.\n");
         } 
         
         else if(!strncmp(command, "CD", 2) 
         || !strncmp(command, "LS", 2) 
         || !strncmp(command, "PWD", 3)) {
-            printf("");
+            printf("This command will be supported in a later release.\n");
         } 
         
         else if(!strncmp(command, "!LS", 3) 
         || !strncmp(command, "!PWD", 4)) {
-            printf("");
+            printf("This command will be supported in a later release.\n");
         }
 
         else {
