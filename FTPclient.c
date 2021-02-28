@@ -74,9 +74,10 @@ int main (int argc, char *argv[])
     // ----- Shell loop -----
 
     char command[MAX_COMMAND_SIZE];
-    char response[256];	//string to hold the server esponse
+    char response[100];	//string to hold the server esponse
 
     while (1) {
+        memset(response,0,sizeof(response));
         printf("ftp> ");
 		fgets(command, MAX_COMMAND_SIZE, stdin); //more safe but has no \n at the end,
 		command[strcspn(command,"\n")]=0; // adding the \n

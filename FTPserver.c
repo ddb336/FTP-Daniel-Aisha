@@ -77,6 +77,7 @@ int main()
 
 		char message[100];
 		char command[20];
+		char message_back[100];
 		
 
 		struct key_value
@@ -103,16 +104,16 @@ int main()
 			return -1;
 		}
 
-		int pid = fork();
 		int pass_index = -1;
-		if(pid==0)
-		{
 
-			
 			int user=0;
 			
 			while(1){
+					
+
 				memset(command,0,sizeof(command));
+				memset(message_back,0,sizeof(message_back));
+				
 				if(recv(client_fd,command,sizeof(command)-1,0)>0)
 				{
 					// printf("%s \n",command);
@@ -121,8 +122,6 @@ int main()
 
 					char *ptr = strtok(command, delim);
 
-
-					
 					if(strcmp(ptr,"USER")==0)
 						{
 							user=0;
@@ -140,13 +139,15 @@ int main()
 							while(i<users_len) {
 
 						        if(strcmp(auth_users[i].key, ptr) == 0) {
-						        	
-							    	char message_back[] = "Username OK, password required!\n";
+									
+						        	strcat(message_back,"Username OK, password required!");
+									
 							    	pass_index = i;
 							    	// printf("USEROK");
 							    	// printf("%s: %s \n",ptr, message_back);
 							    	send(client_fd,message_back,strlen(message_back),0);
-						
+
+				
 						            user = 2;
 						            // break;
 						        }
@@ -156,8 +157,7 @@ int main()
 
 						    if(user ==0)
 						    {
-						    	
-						    	char message_back[]  = "Username does not exist!\n";
+						    	strcat(message_back,"Username does not exist!");
 						    	// printf("passiNOTOK");
 							    // printf("%s: %s \n",ptr, message_back);
 						    	send(client_fd,message_back,strlen(message_back),0);
@@ -167,11 +167,7 @@ int main()
 
 									
 						}
-						
-					if(strcmp(ptr,"PASS")==0){
-						// printf("USER999");
-						// printf(" %s \n",ptr);
-						// printf(" %d \n",pass_index);
+						if(strcmp(ptr,"PASS")==0){
 
 						ptr = strtok(NULL, delim);
 
@@ -179,7 +175,7 @@ int main()
 
 					 		if(strcmp(auth_users[pass_index].value, ptr) == 0)
 					 		{
-					 			char message_back[] = "Authentication complete!\n";
+					 			strcat(message_back,"Authentication complete!\0");
 					 			
 							    // printf("USEROK");
 							    // printf("%s: %s \n",ptr, message_back);
@@ -188,7 +184,7 @@ int main()
 							    
 					 		}
 					 		else{
-					 			char message_back[] = "Wrong password!\n";
+					 			strcat(message_back,"Wrong password!\n");
 					 			
 							    // printf("passiNOTOKokok");
 							    // printf("%s: %s \n",ptr, message_back);
@@ -198,7 +194,7 @@ int main()
 
 					 	}
 					 	else{
-					 		char message_back[] = "Set USER first!\n";
+					 		strcat(message_back,"Set USER first!\n");
 					 			
 						    // printf("userNOTOK");
 						    // printf(" %d \n",pass_index);
@@ -221,7 +217,7 @@ int main()
 
 
 			
-		}
+		
 	}
 	}
 
