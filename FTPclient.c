@@ -10,7 +10,6 @@
 #include <stdlib.h>
 
 int MAX_COMMAND_SIZE = 100;
-
 bool is_valid_ip(char* ipString);
 
 int main (int argc, char *argv[]) 
@@ -129,6 +128,11 @@ int main (int argc, char *argv[])
     return 0;
 }
 
+/*
+ * This custom function makes sure that the string IP address given in the argu-
+ * ment is in the valid format (four numbers between 0 and 256, with a 0 in 
+ * between).
+ */
 bool is_valid_ip(char* ipString) {
     int string_size = strlen(ipString);
 
@@ -165,6 +169,6 @@ bool is_valid_ip(char* ipString) {
             if (ipString[i-1] == '.' || ipString[i-1] == '.') return false;
         }
     }
-    
+
     return true;
 }

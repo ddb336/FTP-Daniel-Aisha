@@ -13,7 +13,6 @@ void serve_client(int client_sd);
 
 int main()
 {
-	
 	//1. socket
 	int server_fd = socket(AF_INET,SOCK_STREAM,0);
 	
@@ -72,9 +71,6 @@ int main()
 
 	while(1)
 	{
-		
-		// int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds,
-  //        fd_set *restrict errorfds, struct timeval *restrict timeout);
 
 		readyfd = readfds;
         if(select(max_fd+1,&readyfd,NULL,NULL,NULL)<0)
@@ -111,10 +107,10 @@ close(server_fd);
 	
 }
 
-
+/*
+ * This function serves the client passed in as client_fd.
+ */	
 void serve_client(int client_fd){
-
-
 
 	struct key_value
 			{
@@ -139,8 +135,7 @@ void serve_client(int client_fd){
 
 			int user=0;
 			
-			while(1){
-					
+			while(1){				
 
 				memset(command,0,sizeof(command));
 				memset(message_back,0,sizeof(message_back));
@@ -158,14 +153,9 @@ void serve_client(int client_fd){
 							user=0;
 							ptr = strtok(NULL, delim);
 
-							// printf("%s \n",ptr);
-					
+							printf("User %s attempting to authenticate.\n", ptr);
 
 							int i = 0;	
-
-							// size_t len = sizeof(auth_users) / sizeof(auth_users[0]);
-							// size_t len = sizeof(auth_users);
-							// printf("%zu \n",len);
 
 							while(i<users_len) {
 
@@ -177,9 +167,9 @@ void serve_client(int client_fd){
 							    	
 							    	send(client_fd,message_back,strlen(message_back),0);
 
-				
+									printf("User %s exists. Waiting for PASS.\n", ptr);
+
 						            user = 2;
-						            // break;
 						        }
 						        i++;
 						        
@@ -188,14 +178,11 @@ void serve_client(int client_fd){
 						    if(user ==0)
 						    {
 						    	strcat(message_back,"Username does not exist!");
-						    	// printf("passiNOTOK");
-							    // printf("%s: %s \n",ptr, message_back);
-						    	send(client_fd,message_back,strlen(message_back),0);
-						    	
-						    	// break;
-						    }
 
-									
+						    	send(client_fd,message_back,strlen(message_back),0);
+
+								printf("User %s does not exist.\n", ptr);
+						    }
 						}
 						if(strcmp(ptr,"PASS")==0){
 
@@ -205,35 +192,25 @@ void serve_client(int client_fd){
 
 					 		if(strcmp(auth_users[pass_index].value, ptr) == 0)
 					 		{
-					 			strcat(message_back,"Authentication complete!\0");
+					 			strcat(message_back,"Authentication complete!");
 					 			
-							    // printf("USEROK");
-							    // printf("%s: %s \n",ptr, message_back);
 							    send(client_fd,message_back,strlen(message_back),0);
-							    //reset the user
-							    
+
+								printf("User authenticated.\n");
 					 		}
 					 		else{
-					 			strcat(message_back,"Wrong password!\n");
+					 			strcat(message_back,"Wrong password!");
 					 			
-							    // printf("passiNOTOKokok");
-							    // printf("%s: %s \n",ptr, message_back);
 							    send(client_fd,message_back,strlen(message_back),0);
 
+								printf("User attempted incorrect password.\n");
 					 		}
-
 					 	}
 					 	else{
-					 		strcat(message_back,"Set USER first!\n");
-					 			
-						    // printf("userNOTOK");
-						    // printf(" %d \n",pass_index);
-						    // printf("%s: %s \n",ptr, message_back);
+					 		strcat(message_back,"Set USER first!");
+
 						    send(client_fd,message_back,strlen(message_back),0);
-
 					 	}
-
-
 
 					 	}
 

@@ -19,13 +19,15 @@ At this stage of the project, we have implemented the USER, PASS and QUIT
 commands in the *FTPclient.c*. The client can connect to the server and do 
 basic authentication, but none of the file transfer is yet implemented.
 
-
-
-
-
-
-
-
+To test checkpoint one, run the server with: <br>
+<code>gcc -o FTPserver FTPserver.c && ./FTPserver</code><br>
+And then run the client with <br>
+<code>gcc -o FTPclient FTPclient.c && ./FTPclient 127.0.0.1 9000</code><br>
+After this, authenticate with one of the following user-password pairs:<br>
+<ul>
+    <li><code>USER Aisha PASS AHPass</code></li>
+    <li><code>USER Daniel PASS DBPass</code></li>
+</ul>
 
 
 
