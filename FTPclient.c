@@ -77,6 +77,7 @@ int main (int argc, char *argv[])
 
     while (1) {
         memset(response,0,sizeof(response));
+
         printf("ftp> ");
 		fgets(command, MAX_COMMAND_SIZE, stdin); //more safe but has no \n at the end,
 		command[strcspn(command,"\n")]=0; // adding the \n
@@ -109,13 +110,17 @@ int main (int argc, char *argv[])
             printf("GET command will be supported in a later release.\n");
         } 
         
-        else if(!strncmp(command, "CD", 2) 
-        || !strncmp(command, "LS", 2) 
-        || !strncmp(command, "PWD", 3)) {
-            printf("This command will be supported in a later release.\n");
+        else if (!strncmp(command, "cd", 2) 
+        || !strncmp(command, "ls", 2) 
+        || !strncmp(command, "pwd", 3)) {
+            command[strcspn(command,"\n")]=0;
+            send(server_fd,command,strlen(command),0);
+            recv(server_fd,response,sizeof(response),0);
+            fflush(stdout);
+            printf("%s", response);
         } 
         
-        else if(!strncmp(command, "!LS", 3) 
+        else if (!strncmp(command, "!LS", 3) 
         || !strncmp(command, "!PWD", 4)) {
             printf("This command will be supported in a later release.\n");
         }
@@ -123,6 +128,7 @@ int main (int argc, char *argv[])
         else {
             printf("Invalid ftp command\n"); 
         }
+        fflush(stdout);
     }
 
     return 0;
