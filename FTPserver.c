@@ -182,7 +182,9 @@ void serve_client(int client_fd){
 						    	send(client_fd,message_back,strlen(message_back),0);
 
 								printf("User %s does not exist.\n", ptr);
+								break;
 						    }
+							
 						}
 						if(strcmp(ptr,"PASS")==0){
 
@@ -211,7 +213,7 @@ void serve_client(int client_fd){
 
 						    send(client_fd,message_back,strlen(message_back),0);
 					 	}
-
+						break;
 					 	}
 
 
