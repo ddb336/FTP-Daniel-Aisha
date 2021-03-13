@@ -60,6 +60,7 @@ int main (int argc, char *argv[])
 	server_address.sin_family = AF_INET;
 	server_address.sin_port = htons(server_port);
 	inet_pton(AF_INET, server_ip_address, &(server_address.sin_addr));
+    printf(" Main Server port %i \n", server_address.sin_port);
 
     //2 connect
 	if(connect(server_fd,(struct sockaddr*)&server_address,sizeof(server_address))<0)
@@ -76,10 +77,12 @@ int main (int argc, char *argv[])
     char response[100];	//string to hold the server esponse
 
     while (1) {
+        
         memset(response,0,sizeof(response));
         printf("ftp> ");
 		fgets(command, MAX_COMMAND_SIZE, stdin); //more safe but has no \n at the end,
 		command[strcspn(command,"\n")]=0; // adding the \n
+
 
         if (!strncmp(command, "QUIT", 4) || !strncmp(command, "quit", 4)) {
             send(server_fd,"QUIT",4,0);
@@ -89,6 +92,7 @@ int main (int argc, char *argv[])
 
         else if (!strncmp(command, "USER", 4)) {
             command[strcspn(command,"\n")]=0;
+
             send(server_fd,command,strlen(command),0);
             recv(server_fd,response,sizeof(response),0);
             printf("%s\n", response);
@@ -102,7 +106,97 @@ int main (int argc, char *argv[])
         }
 
         else if (!strncmp(command, "PUT", 3)) {
-            printf("PUT command will be supported in a later release.\n");
+            command[strcspn(command,"\n")]=0;
+
+                char new_command[20];
+                strcpy(new_command, command); 
+
+                char delim[] = " ";      
+                char *ptr = strtok(new_command, delim);
+
+
+
+                char filename[50];
+               
+                ptr = strtok(NULL, delim);
+                strcpy(filename, ptr); 
+               
+
+                printf("Sending file : %s \n",filename);
+                FILE* file;
+                if(!(file = fopen(filename,"r")))
+                {
+                    perror("File cant be opened..");
+                }
+                else
+                {
+
+                    send(server_fd,command,strlen(command),0);
+                
+                    int put_server_fd = socket(AF_INET,SOCK_STREAM,0);
+
+                    if(put_server_fd<0)
+                    {
+                        perror("Socket: ");
+                        return -1;
+                    }
+
+                    struct sockaddr_in put_server_address;
+                    memset(&put_server_address,0,sizeof(put_server_address));
+
+                    int port_num;
+                    recv(server_fd,&port_num,sizeof(port_num),0);
+
+
+                    put_server_address.sin_family = AF_INET;
+                    put_server_address.sin_port = htons(port_num);
+                    put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+                    //2 connect
+                    if(connect(put_server_fd,(struct sockaddr*)&put_server_address,sizeof(put_server_address))<0)
+                    {
+                        perror("Connect :");
+
+                        return -1;
+                    }
+
+                    // printf("File Server port %i \n", put_server_address.sin_port);
+                    char message[100];
+
+                    fseek(file, 0L, SEEK_END);
+                    int file_size = ftell(file);
+                    fseek(file, 0L, SEEK_SET);
+                    
+                    send(put_server_fd,&file_size,sizeof(file_size),0);
+
+                    char line[256];
+
+                    while(fgets(line,  sizeof(line), file)>0)     
+                        {
+
+                            if(send(put_server_fd,line,strlen(line),0)==-1)     //send the client response to the server
+                            {   
+                                    perror("Error Sending file..\n");
+                                    break;
+                            }
+
+                            memset(line,0,sizeof(line));    
+                        }
+                    fclose(file);
+                                                  //close the client socket
+                      
+
+                    //4. close
+                    recv(put_server_fd,response,sizeof(response),0);
+                    printf("%s\n", response);
+                    close(put_server_fd);
+
+
+            
+            
+                }
+
+            
+
         }
 
         else if (!strncmp(command, "GET", 3)) {

@@ -79,6 +79,7 @@ int main()
             return -1;
         }
 
+
         for(int i=0; i<=max_fd;i++)		// In the end of the lab our loop terminating condition was i<max_fd that is why our server was not monitoring all sockets
         {
             if(FD_ISSET(i,&readyfd))
@@ -87,6 +88,7 @@ int main()
                 if(i==server_fd)
                 {
                     int client_fd = accept(server_fd,NULL,NULL);
+					
                     FD_SET(client_fd,&readyfd);
 
                     
@@ -94,6 +96,7 @@ int main()
                 }
                 else
                 {
+
                     serve_client(i);
                     FD_CLR(i,&readfds);
                 }
@@ -135,14 +138,15 @@ void serve_client(int client_fd){
 
 			int user=0;
 			
-			while(1){				
+			// while(1){				
 
 				memset(command,0,sizeof(command));
 				memset(message_back,0,sizeof(message_back));
 				
 				if(recv(client_fd,command,sizeof(command)-1,0)>0)
 				{
-					// printf("%s \n",command);
+					
+					printf("%s \n",command);
 					int init_size = strlen(command);
 					char delim[] = " ";
 
@@ -184,7 +188,8 @@ void serve_client(int client_fd){
 								printf("User %s does not exist.\n", ptr);
 						    }
 						}
-						if(strcmp(ptr,"PASS")==0){
+						else if(strcmp(ptr,"PASS")==0){
+
 
 						ptr = strtok(NULL, delim);
 
@@ -213,10 +218,142 @@ void serve_client(int client_fd){
 					 	}
 
 					 	}
+					 	else if(strcmp(ptr,"PUT")==0){
+					 			//forking 
+					 					
+					 					ptr = strtok(NULL, delim);
+
+										printf("File %s is pending to be transfered.\n", ptr);
+
+										int put_server_fd = socket(AF_INET,SOCK_STREAM,0);
+										if(put_server_fd<0)
+										{
+											perror("Socket: ");
+											return;
+										}
+
+										struct sockaddr_in put_server_address;
+										memset(&put_server_address,0,sizeof(put_server_address));
+
+										//generate rand port number between 1,024–49,151
+										int port_num = (rand() % (49151 - 1024 + 1)) + 1024;
+										// printf("port num is %i\n", port_num);
 
 
-							
-					}
+										send(client_fd,&port_num,sizeof(port_num),0);
+										
+
+										put_server_address.sin_family = AF_INET;
+										put_server_address.sin_port = htons(port_num);
+										put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+										// printf("File Server port %i \n", put_server_address.sin_port);
+
+										//2. bind
+										if(bind(put_server_fd,(struct sockaddr*) &put_server_address,sizeof(put_server_address))<0)
+										{
+											perror("Bind: ");
+											return;
+										}
+										//3. listen
+										if(listen(put_server_fd,2)<0)
+										{
+											perror("Listen: ");
+											return;
+										}
+										//4. accept
+										struct sockaddr_in put_client_address;				//we to pass this to accept method to get client info
+										int client_address_len = sizeof(put_client_address); // accept also needs client_address length
+										
+										char put_client_name[50];
+
+										
+										int put_client_fd = accept(put_server_fd, (struct sockaddr*)&put_client_address,(socklen_t *)&client_address_len);
+										char message[100];
+										inet_ntop(AF_INET,&put_client_address.sin_addr,put_client_name,sizeof(put_client_name));
+
+										if(put_client_fd<0)
+										{
+											perror("Accept: ");
+											return;
+										}
+
+										int pid = fork();
+										if(pid==0)
+										{
+											
+								                char filename[50];
+								                int file_size = 0;    
+								                char server_file[50];
+								                strcpy(server_file,"Server-");
+								                strcat(server_file, ptr);
+
+								                printf("Serverfile : %s \n",server_file);
+								                strcpy(filename, server_file); 
+
+								                recv(put_client_fd,&file_size,sizeof(file_size),0);
+								                
+
+								                printf("Creating a file : %s \n",filename);
+								                FILE* file;
+								                if(!(file = fopen(filename,"a")))
+								                {
+								                    perror("Sorry, this file can't be created.");
+								                    return;
+								                }
+								                else
+								                {
+								               	
+									                char line[256];
+									                memset(line, 0, sizeof(line));
+
+									   				int ctr = 0;
+
+													while(recv(put_client_fd,line,sizeof(line),0)>=0)
+														{	
+
+															int write_file = fwrite(line, 1, sizeof(line), file);
+
+														        if(write_file < 0)
+														        {
+														            perror("Error when writing into the file. Try again.\n");
+														            return;
+														        }
+
+													        
+													        ctr +=sizeof(line);
+
+													        if (ctr >= file_size) break;
+													        memset(line, 0, sizeof(line));
+													        
+													    }
+
+												    fclose(file);
+
+											    
+												}
+												
+												fflush(stdout);
+
+												strcat(message_back,"Transfer of the file done.");
+											    send(put_client_fd,message_back,strlen(message_back),0);
+
+											    printf("GET function completed.\n");
+												send(put_client_fd,"GET function completed. \n",strlen("GET function completed. \n"),0);
+
+											
+
+											
+											close(put_client_fd);
+											
+										}
+										
+										
+										close(put_server_fd);
+										return;
+
+
+
+
 
 
 
@@ -224,6 +361,7 @@ void serve_client(int client_fd){
 
 close(client_fd);		
 			
+}
 }	
 
 		
