@@ -236,165 +236,299 @@ void serve_client(int client_fd, struct serverUser* auth_users, int* sock_array)
 				}
 			}
 		} else if (user_authenticated)
-		{
-			if (strcmp(command, "PUT")==0) 
-			{
-			//forking
-
-			command = strtok(NULL, delim);
-
-			printf("File %s is pending to be transfered.\n", command);
-
-			int put_server_fd = socket(AF_INET, SOCK_STREAM, 0);
-			if (put_server_fd < 0)
-			{
-				perror("Socket: ");
-				return;
-			}
-
-			struct sockaddr_in put_server_address;
-			memset(&put_server_address, 0, sizeof(put_server_address));
-
-			//generate rand port number between 1,024–49,151
-			int port_num = (rand() % (49151 - 1024 + 1)) + 1024;
-			// printf("port num is %i\n", port_num);
-
-			send(client_fd, &port_num, sizeof(port_num), 0);
-
-			put_server_address.sin_family = AF_INET;
-			put_server_address.sin_port = htons(port_num);
-			put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-			printf("File Server port %i \n", put_server_address.sin_port);
-
-			//2. bind
-			if (bind(put_server_fd, (struct sockaddr *)&put_server_address, sizeof(put_server_address)) < 0)
-			{
-				perror("Bind: ");
-				return;
-			}
-			//3. listen
-			if (listen(put_server_fd, 2) < 0)
-			{
-				perror("Listen: ");
-				return;
-			}
-			//4. accept
-			struct sockaddr_in put_client_address;				 //we to pass this to accept method to get client info
-			int client_address_len = sizeof(put_client_address); // accept also needs client_address length
-
-			char put_client_name[50];
-
-			int put_client_fd = accept(put_server_fd, (struct sockaddr *)&put_client_address, (socklen_t *)&client_address_len);
-			char message[100];
-			inet_ntop(AF_INET, &put_client_address.sin_addr, put_client_name, sizeof(put_client_name));
-
-			if (put_client_fd < 0)
-			{
-				perror("Accept: ");
-				return;
-			}
-
-			int pid = fork();
-			if (pid == 0)
-			{
-
-				char filename[50];
-				int file_size = 0;
-				char server_file[50];
-				strcpy(server_file, "Server-");
-				strcat(server_file, command);
-
-				printf("Serverfile : %s \n", server_file);
-				strcpy(filename, server_file);
-
-				recv(put_client_fd, &file_size, sizeof(file_size), 0);
-
-				printf("Creating a file : %s \n", filename);
-				FILE *file;
-				if (!(file = fopen(filename, "a")))
 				{
-					perror("Sorry, this file can't be created.");
-					return;
-				}
-				else
-				{
+					if (strcmp(command, "PUT")==0) 
+					{
+					//forking
 
-					char line[256];
-					memset(line, 0, sizeof(line));
+					command = strtok(NULL, delim);
 
-					int ctr = 0;
+					printf("File %s is pending to be transfered.\n", command);
 
-					while (recv(put_client_fd, line, sizeof(line), 0) >= 0)
+					int put_server_fd = socket(AF_INET, SOCK_STREAM, 0);
+					if (put_server_fd < 0)
+					{
+						perror("Socket: ");
+						return;
+					}
+
+					struct sockaddr_in put_server_address;
+					memset(&put_server_address, 0, sizeof(put_server_address));
+
+					//generate rand port number between 1,024–49,151
+					int port_num = (rand() % (49151 - 1024 + 1)) + 1024;
+					// printf("port num is %i\n", port_num);
+
+					send(client_fd, &port_num, sizeof(port_num), 0);
+
+					put_server_address.sin_family = AF_INET;
+					put_server_address.sin_port = htons(port_num);
+					put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+					printf("Opening port %i for file transfer. \n", put_server_address.sin_port);
+
+					//2. bind
+					if (bind(put_server_fd, (struct sockaddr *)&put_server_address, sizeof(put_server_address)) < 0)
+					{
+						perror("Bind: ");
+						return;
+					}
+					//3. listen
+					if (listen(put_server_fd, 2) < 0)
+					{
+						perror("Listen: ");
+						return;
+					}
+					//4. accept
+					struct sockaddr_in put_client_address;				 //we to pass this to accept method to get client info
+					int client_address_len = sizeof(put_client_address); // accept also needs client_address length
+
+					char put_client_name[50];
+
+					int put_client_fd = accept(put_server_fd, (struct sockaddr *)&put_client_address, (socklen_t *)&client_address_len);
+					char message[100];
+					inet_ntop(AF_INET, &put_client_address.sin_addr, put_client_name, sizeof(put_client_name));
+
+					if (put_client_fd < 0)
+					{
+						perror("Accept: ");
+						return;
+					}
+
+					int pid = fork();
+					if (pid == 0)
 					{
 
-						int write_file = fwrite(line, 1, sizeof(line), file);
+						char filename[50];
+						int file_size = 0;
+						char server_file[50];
+						strcpy(server_file, "Server-");
+						strcat(server_file, command);
 
-						if (write_file < 0)
+						printf("Serverfile : %s \n", server_file);
+						strcpy(filename, server_file);
+
+						recv(put_client_fd, &file_size, sizeof(file_size), 0);
+
+						printf("Creating a file : %s \n", filename);
+						FILE *file;
+						if (!(file = fopen(filename, "a")))
 						{
-							perror("Error when writing into the file. Try again.\n");
+							perror("Sorry, this file can't be created.");
 							return;
 						}
+						else
+						{
 
-						ctr += sizeof(line);
+							char line[256];
+							memset(line, 0, sizeof(line));
 
-						if (ctr >= file_size)
-							break;
-						memset(line, 0, sizeof(line));
+							int ctr = 0;
+
+							while (recv(put_client_fd, line, sizeof(line), 0) >= 0)
+							{
+
+								int write_file = fwrite(line, 1, sizeof(line), file);
+
+								if (write_file < 0)
+								{
+									perror("Error when writing into the file. Try again.\n");
+									return;
+								}
+
+								ctr += sizeof(line);
+
+								if (ctr >= file_size)
+									break;
+								memset(line, 0, sizeof(line));
+							}
+
+							fclose(file);
+						}
+
+						fflush(stdout);
+
+						strcat(response, "Transfer of the file done.");
+						send(put_client_fd, response, strlen(response), 0);
+
+						printf("PUT function completed.\n");
+						send(put_client_fd, "PUT function completed. \n", strlen("PUT function completed. \n"), 0);
+
+						close(put_client_fd);
 					}
 
-					fclose(file);
-				}
+					close(put_server_fd);
+					return;
 
-				fflush(stdout);
+					} //ending PUT
 
-				strcat(response, "Transfer of the file done.");
-				send(put_client_fd, response, strlen(response), 0);
+				// staring GET function 
+				else if (strcmp(command, "GET")==0) 
+					{
+						command[strcspn(command, "\n")] = 0;
 
-				printf("GET function completed.\n");
-				send(put_client_fd, "GET function completed. \n", strlen("GET function completed. \n"), 0);
+						char filename[50];
+						command = strtok(NULL, delim);
+						strcpy(filename, command);
+			            
 
-				close(put_client_fd);
-			}
+			            printf("Requesting file : %s \n", filename);
+			            FILE *file;
+			            if (!(file = fopen(filename, "r")))
+			            {	
+			            	strcpy(response,"Nonexistent");
+			            	send(client_fd,response,strlen(response),0);
+			                perror("File does not exist.\n");
+			                
+			            }
+			            else
+			            {
 
-			close(put_server_fd);
-			return;
-		} else if (strcmp(command, "GET")==0) 
-			{
-			 	strcat(response,"Well done.");
-				send(client_fd,response,strlen(response),0);
-				printf("get\n");
-			} else if (strcmp(command, "ls")==0) 
-			{	
-				char line[128];
+			            	strcpy(response,"Existent");
+			            	send(client_fd,response,strlen(response),0);
 
-				FILE *file = popen(request, "r");
-				if (file) {
-					while (fgets(line, sizeof(line), file)) {
-						strcat(response, line);
+
+
+					        int get_server_fd = socket(AF_INET, SOCK_STREAM, 0);
+							if (get_server_fd < 0)
+							{
+								perror("Socket: ");
+								return;
+							}
+
+							struct sockaddr_in get_server_address;
+							memset(&get_server_address, 0, sizeof(get_server_address));
+
+							//generate rand port number between 1,024–49,151
+							int port_num = (rand() % (49151 - 1024 + 1)) + 1024;
+							// printf("port num is %i\n", port_num);
+
+							send(client_fd, &port_num, sizeof(port_num), 0);
+
+							get_server_address.sin_family = AF_INET;
+							get_server_address.sin_port = htons(port_num);
+							get_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+							printf("Opening port %i for file transfer. \n", get_server_address.sin_port);
+
+							//2. bind
+							if (bind(get_server_fd, (struct sockaddr *)&get_server_address, sizeof(get_server_address)) < 0)
+							{
+								perror("Bind: ");
+								return;
+							}
+							//3. listen
+							if (listen(get_server_fd, 2) < 0)
+							{
+								perror("Listen: ");
+								return;
+							}
+							//4. accept
+							struct sockaddr_in get_client_address;				 //we to pass this to accept method to get client info
+							int client_address_len = sizeof(get_client_address); // accept also needs client_address length
+
+							char get_client_name[50];
+
+							int get_client_fd = accept(get_server_fd, (struct sockaddr *)&get_client_address, (socklen_t *)&client_address_len);
+							char message[100];
+							inet_ntop(AF_INET, &get_client_address.sin_addr, get_client_name, sizeof(get_client_name));
+
+							if (get_client_fd < 0)
+							{
+								perror("Accept: ");
+								return;
+							}
+
+							int pid = fork();
+							if (pid == 0)
+							{
+
+								char message[100];
+
+			                    fseek(file, 0L, SEEK_END);
+			                    int file_size = ftell(file);
+			                    fseek(file, 0L, SEEK_SET);
+
+			                    send(get_client_fd, &file_size, sizeof(file_size), 0);
+
+			                    char line[256];
+
+			                    while (fgets(line, sizeof(line), file) > 0)
+			                    {
+
+			                        if (send(get_client_fd, line, strlen(line), 0) == -1) //send the client response to the server
+			                        {
+			                            perror("Error Sending file..\n");
+			                            break;
+			                        }
+
+			                        memset(line, 0, sizeof(line));
+			                    }
+			                    fclose(file);
+
+			                    //4. close
+			                    recv(get_client_fd, response, sizeof(response), 0);
+			                    printf("%s\n", response);
+			                    
+
+
+								close(get_client_fd);
+							}
+
+							close(get_server_fd);
+							return;
+
+					
+
+
+
+
+
+			            }
+
+
+					 	
+						
+					} 
+
+
+
+
+				// starting LS function 
+				else if (strcmp(command, "ls")==0) 
+					{	
+						char line[128];
+
+						FILE *file = popen(request, "r");
+						if (file) {
+							while (fgets(line, sizeof(line), file)) {
+								strcat(response, line);
+							}
+							pclose(file);
+						}
+						
+						send(client_fd,response,strlen(response),0);
+					} else if (strcmp(command, "pwd")==0) 
+					{	
+						char line[128];
+
+						FILE *file = popen(request, "r");
+						if (file) {
+							while (fgets(line, sizeof(line), file)) {
+								strcat(response, line);
+							}
+							pclose(file);
+						}
+						
+						send(client_fd,response,strlen(response),0);
+					} else 
+					{
+						strcat(response,"Authenticate first.");
+						send(client_fd,response,strlen(response),0);
 					}
-					pclose(file);
-				}
-				
-				send(client_fd,response,strlen(response),0);
-			} else if (strcmp(command, "pwd")==0) 
-			{	
-				char line[128];
+				} 
 
-				FILE *file = popen(request, "r");
-				if (file) {
-					while (fgets(line, sizeof(line), file)) {
-						strcat(response, line);
-					}
-					pclose(file);
-				}
-				
-				send(client_fd,response,strlen(response),0);
-			} else 
-			{
-				strcat(response,"Authenticate first.");
-				send(client_fd,response,strlen(response),0);
-			}
-		} else if (strcmp(command, "QUIT")==0 || strcmp(command, "quit")==0) 
+
+
+		else if (strcmp(command, "QUIT")==0 || strcmp(command, "quit")==0) 
 		{
 			close_client(client_fd, auth_users, sock_array);
 		} else 
