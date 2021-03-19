@@ -427,14 +427,14 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						perror("Bind: ");
 						return;
 					}
-                    printf("here1\n");
+
 					//3. listen
 					if (listen(get_server_fd, 2) < 0)
 					{
 						perror("Listen: ");
 						return;
 					}
-					printf("here2\n");
+
 					//4. accept
 					struct sockaddr_in get_client_address;				 //we to pass this to accept method to get client info
 					int client_address_len = sizeof(get_client_address); // accept also needs client_address length
@@ -445,7 +445,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					char message[100];
 					inet_ntop(AF_INET, &get_client_address.sin_addr, get_client_name, sizeof(get_client_name));
 
-					printf("here3\n");
+
 
 					if (get_client_fd < 0)
 					{
@@ -454,7 +454,6 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					}
 
 					
-						printf("here4\n");
 						char line[256];
 						while (fgets(line, sizeof(line), file) != NULL) //read the file until NULL
 						{
@@ -465,18 +464,17 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 							}
 							memset(line, 0, sizeof(line));
 						}
-						printf("here5\n");
+
 						fclose(file);
 
 						//4. close
 						// recv(get_client_fd, response, sizeof(response), 0);
 						// printf("%s\n", response);
 						// printf("here6\n");
-						printf("server fd: %d\n", get_server_fd);
 
 						close(get_client_fd);
 						close(get_server_fd);
-						printf("quitting\n");
+
 						exit(0);
 					}
 

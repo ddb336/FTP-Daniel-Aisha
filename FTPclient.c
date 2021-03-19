@@ -232,7 +232,6 @@ int main(int argc, char *argv[])
                 get_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
                 printf("File Server port %i \n", get_server_address.sin_port);
 
-                printf("here1\n");
 
                 //2 connect
                 if (connect(get_server_fd, (struct sockaddr *)&get_server_address, sizeof(get_server_address)) < 0)
@@ -242,7 +241,6 @@ int main(int argc, char *argv[])
                     return -1;
                 }
 
-                printf("here2\n");
 
                 // GETTING file from the server
                 char delim[] = " ";
@@ -266,21 +264,17 @@ int main(int argc, char *argv[])
                 {
                     char message[256];
 
-                    printf("here3\n");
 
-                    printf("server fd: %d\n", get_server_fd);
 
                     int myreturn = 0;
 
                     memset(message,0,sizeof(message));
                     while ((myreturn = recv(get_server_fd, message, sizeof(message), 0)) > 0)
                     {
-                        printf("%d\n",myreturn);
                         fputs(message, file);
                         memset(message, 0, sizeof(message));
                     }
 
-                    printf("here4\n");
 
                     fclose(file);
                 }
@@ -292,11 +286,11 @@ int main(int argc, char *argv[])
                 // strcat(response, "Transfer of the file done. Port closed. \n");
                 // send(get_server_fd, response, strlen(response), 0);
 
-                printf("Transfer of the file %s done. New file is saved as %s. \n Port closed. \n", filenm, client_file);
+                printf("Transfer of the file %s done. New file is saved as %s. \nPort closed. \n", filenm, client_file);
 
                 close(get_server_fd);
             }
-            printf("%s\n", response);
+
             fflush(stdout);
         }
 
