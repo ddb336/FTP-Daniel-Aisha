@@ -1,0 +1,251 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2578
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica-Bold;\f1\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww22660\viewh14260\viewkind0
+\deftab720
+\pard\pardeftab720\qc\partightenfactor0
+
+\f0\b\fs36 \cf0 \
+
+\fs48 TESTING 
+\fs36 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\b0\fs24 \cf0 \
+Code quality is of great importance and we have developed 32 test cases to test our code.  In this project, we have conducted a number of important testings to ensure the quality of our code. We have included a brief description of all the test cases done as well as reasons why we believe these particular test cases demonstrate the full functionality of our project. \
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 \
+\pard\pardeftab720\partightenfactor0
+\cf0 In shaping our test cases, we paid attention to include both general server and client test cases, as well as more particular corner cases, such as those with uploading and downloading specific types of files. \
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 \
+\
+Test cases 1-7 ensure correct authentication of the user. These cases are crucial as they allow for secured users only to proceed while it rejects malicious users to use the functionalities. \
+\
+
+\f0\b Test Case 1 \
+
+\f1\b0 Check the USER command. The user types in a valid user name, "Aisha" or "Daniel".\
+Result: Correct execution with message "331 Username OK, password required!" \
+\
+
+\f0\b Test Case 2 
+\f1\b0 \
+Check the USER command. The user types in a invalid user name, "Kiara".\
+Result: Correct execution with message "Username does not exist!"\
+\
+
+\f0\b Test Case 3\
+
+\f1\b0 Check the PASS command. The user types in a valid password, "AHPass" or "DBPass" respectively for Aisha and Daniel.   \
+Result: Correct execution with message " Authentication complete!" \
+\
+
+\f0\b Test Case 4\
+
+\f1\b0 Check the PASS command. After successfully passing USER command, The user types in an invalid password, "MyPass".  \
+Result: Correct execution with message "Authentication complete!Incorrect password!"  \
+\
+
+\f0\b Test Case 5\
+
+\f1\b0 Check the PASS command. The user types invalid password, "AHPass" for Daniel username. \
+Result: Correct execution with message "Incorrect password!"\
+\
+
+\f0\b Test Case 6\
+
+\f1\b0 The user types in any command without authenticating the USER AND PASS first. \
+Result: Correct execution with message "Authenticate first."\
+\
+
+\f0\b Test Case 7\
+
+\f1\b0 The user types in any command with passing USER command, but not PASS command.\
+Result: Correct execution with message "Authenticate first."\
+\
+\
+\
+\
+\
+The test cases 8- ensure correct and secure file upload and download. Besides authenticating the user, PUT and GET commands yield the most important functionalities of the program and should hence be working correctly. \
+\
+
+\f0\b Test Case 8 \
+
+\f1\b0 Check the PUT command. The user types in an existing file as a filename to be uploaded. \
+Result: Correct execution. File Server-'filename'.txt created at server directory. \
+\
+
+\f0\b Test Case 9 \
+
+\f1\b0 Check the PUT command. The user types in a non-existing file as a filename to be uploaded.\
+Result: Correct execution with message "File cant be opened..: No such file or directory"\
+\
+
+\f0\b Test Case 10 \
+
+\f1\b0 Check the GET command. The user types in an existing file as a filename to be downloaded. \
+Result: Correct execution. File Client-'filename'.txt created at client directory. \
+\
+
+\f0\b Test Case 11 \
+
+\f1\b0 Check the GET command. The user types in a non-existing file as a filename to be downloaded.\
+Result: Correct execution with message "There's no such file on the server."\
+\
+\
+\
+\
+\
+We believe that files of various types and sizes should be uploaded download. Hence we include following test cases. \
+\
+
+\f0\b Test Case 12 \
+
+\f1\b0 Check the PUT command. The user types in a corrupted file to be uploaded. \
+Result: Correct execution. File Server-corrupted.txt created at server directory. \
+\
+
+\f0\b Test Case 13 \
+
+\f1\b0 Check the GET command. The user types in a corrupted file to be downloaded.\
+Result: Correct execution. New file is saved as Client-corrupted.txt.\
+\
+
+\f0\b Test Case 14 \
+
+\f1\b0 Check the PUT command. The user types in a 500KB  file to be uploaded. \
+Result: Correct execution. File uploaded to the server directory. \
+\
+
+\f0\b Test Case 15 \
+
+\f1\b0 Check the PUT command. The user types in a 5MB text file to be uploaded. \
+Result: Correct execution. New file is saved as Client-5MB.txt. \
+\
+
+\f0\b Test Case 16 \
+
+\f1\b0 Check the GET command. The user types in a 500KB text file to be downloaded. \
+Result: Correct execution. File downloaded to the server directory. \
+\
+
+\f0\b Test Case 17 \
+
+\f1\b0 Check the GET command. The user types in a 5MB text file to be downloaded.\
+Result: Correct execution. New file is saved as Server-5MB.txt.  \
+\
+
+\f0\b Test Case 18 \
+
+\f1\b0 Check the PUT command. The user types in a csv file to be uploaded.\
+Result: Correct execution. Fully transferred file saved as Server-Sample.csv.  \
+\
+
+\f0\b Test Case 19 \
+
+\f1\b0 Check the GET command. The user types in a csv file to be downloaded. \
+Result: Correct execution. Fully transferred file saved as Client-Sample.csv.  \
+\
+
+\f0\b Test Case 21 \
+
+\f1\b0 Check the PUT and GET command. The user types in a Lorem Ipsum file to be uploaded and downloaded.\
+Result: Correct execution. Fully transferred file saved on both requests. \
+\
+\
+\
+\
+\
+Apart from USER, PASS, GET AND PUT, the user should be able to navigate his path and find see their files in the current directory. Hence, the following commands should work as described in the project. \
+\
+
+\f0\b Test Case 22 \
+
+\f1\b0 Check the CD command to change the current server directory.\
+Result: Correct execution with message "Successfully changed directory." (Type LS to check the directory after)\
+\
+
+\f0\b Test Case 23 \
+
+\f1\b0 Check the !CD command to change the current client directory.\
+Result: Correct execution with message "Successfully changed directory." (Type LS to check the directory after)\
+\
+
+\f0\b Test Case 24 \
+
+\f1\b0 Check the LS command. \
+Result: Correct execution. Program lists all the files under the current server directory. \
+\
+
+\f0\b Test Case 25 \
+
+\f1\b0 Check the !LS command to list all the files under the current client directory.\
+Result: Correct execution. Program lists all the files under the current client directory. \
+\
+
+\f0\b Test Case 26 \
+
+\f1\b0 Check the PWD command.\
+Result: Correct execution. Program displays the current server directory. \
+\
+
+\f0\b Test Case 27 \
+
+\f1\b0 Check the !PWD command to display the current client directory.\
+Result: Correct execution. Program displays the current client directory. \
+\
+
+\f0\b Test Case 28 \
+
+\f1\b0 Check the QUIT command.\
+Result: Correct execution. Program quits the FTP session and close the control TCP connection.\
+\
+\
+
+\f0\b Test Case 29 \
+
+\f1\b0 Type in any command other than USER, PASS, GET, PUT and navigation commands. \
+Type in "SEND filename". \
+Result: Correct execution. Program displays message "Invalid ftp command."\
+\
+\
+\
+\
+\
+Our program should be able to handle different simultaneous requests and should be able to successfully navigate and execute when FTP server and client codes are in different directories. We test those in following. \
+\
+
+\f0\b Test Case 30 \
+
+\f1\b0 FTPserver and FTPclient are in different directories. Upload the file to the current client directory using PUT.\
+Result: Correct execution. File correctly created in server's directory. \
+\
+
+\f0\b Test Case 31\
+
+\f1\b0 FTPserver and FTPclient are in different directories. Download the file from the current server directory using GET.\
+Result: Correct execution. File correctly created in client's directory. \
+\
+
+\f0\b Test Case 32 \
+
+\f1\b0 Multiple clients requesting to download file simultaneously. \
+Result: Correct execution. 3 different requests were simultaneously sent from 3 different users, Daniel, Khalid and Aisha. All three requests were completed successfully. Note that each of the clients connected to a different port numbers for file transfer. \
+ \
+\
+\
+\
+\
+\
+ \
+\
+\
+\
+\
+\
+\
+\
+}
