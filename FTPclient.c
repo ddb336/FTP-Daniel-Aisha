@@ -128,16 +128,18 @@ int main(int argc, char *argv[])
             ptr = strtok(NULL, delim);
             strcpy(filename, ptr);
 
-            printf("Sending file : %s \n", filename);
-            FILE *file;
+            send(server_fd, command, strlen(command), 0);
+            recv(server_fd, response, sizeof(response), 0);
+
+            if (!strcmp(response, "Ready for put!")) {
+                FILE *file;
             if (!(file = fopen(filename, "r")))
             {
                 perror("File cant be opened..");
             }
             else
             {
-
-                send(server_fd, command, strlen(command), 0);
+                printf("Sending file : %s \n", filename);
 
                 int put_server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -180,27 +182,12 @@ int main(int argc, char *argv[])
                     memset(line, 0, sizeof(line));
                 }
 
-                
-
                 fclose(file);
-
-                //4. close
-                // recv(get_client_fd, response, sizeof(response), 0);
-                // printf("%s\n", response);
-                // printf("here6\n");
-
-                // recv(put_server_fd, response, sizeof(response), 0);
-                // printf("%s\n", response);
-
                 
                 close(put_server_fd);
-
-                exit(0);
-                //close the client socket
-
-                //4. close
-                
-                
+            }
+            } else {
+                printf("%s", response);
             }
         }
 
@@ -295,12 +282,14 @@ int main(int argc, char *argv[])
                 printf("Transfer of the file %s done. New file is saved as %s. \nPort closed. \n", filenm, client_file);
 
                 close(get_server_fd);
+            } else {
+                printf("%s", response);
             }
 
             fflush(stdout);
         }
 
-        else if (!strncmp(command, "cd", 2) || !strncmp(command, "ls", 2) || !strncmp(command, "pwd", 3))
+        else if (!strncmp(command, "CD", 2) || !strncmp(command, "LS", 2) || !strncmp(command, "PWD", 3))
         {
             command[strcspn(command, "\n")] = 0;
             send(server_fd, command, strlen(command), 0);
@@ -309,9 +298,22 @@ int main(int argc, char *argv[])
             printf("%s", response);
         }
 
-        else if (!strncmp(command, "!LS", 3) || !strncmp(command, "!PWD", 4))
+        else if (!strncmp(command, "!LS", 3))
         {
-            printf("This command will be supported in a later release.\n");
+            system("ls");
+        }       
+
+        else if (!strncmp(command, "!PWD", 4))
+        {
+            system("pwd");
+        }
+
+        else if (!strncmp(command, "!CD", 3))
+        {
+            char delim[] = " ";
+            char *token = strtok(command, delim);
+            token = strtok(NULL, delim);
+            if (chdir(token) != 0) printf("chdir() to %s failed\n",token); 
         }
 
         else

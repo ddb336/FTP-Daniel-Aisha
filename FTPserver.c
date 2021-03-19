@@ -178,7 +178,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 				printf("User %s already logged in.\n", command);
 			}
 
-			command = strtok(NULL, delim);
+			command = strtok(NULL, delim); 
 
 			printf("User %s attempting to authenticate.\n", command);
 
@@ -190,7 +190,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 				{
 					if (auth_users[i].state == 0)
 					{
-						strcat(response, "Username OK, password required!");
+						strcat(response, "331 Username OK, password required!");
 						auth_users[i].state = 1;
 						auth_users[i].sock_num = client_fd;
 						send(client_fd, response, strlen(response), 0);
@@ -250,6 +250,9 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 		{
 			if (strcmp(command, "PUT") == 0)
 			{
+				strcat(response, "Ready for put!");
+				send(client_fd, response, strlen(response), 0);
+
 				//forking
 				int pid = fork();
 				if (pid == 0)
@@ -354,7 +357,6 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 	                
                     fclose(file);
 
-                    printf("PUT function completed.\n");
 					// send(put_client_fd, "PUT function completed. \n", strlen("PUT function completed. \n"), 0);
 					}
 
@@ -498,11 +500,11 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 			}
 
 			// starting LS function
-			else if (strcmp(command, "ls") == 0)
+			else if (strcmp(command, "LS") == 0)
 			{
 				char line[128];
 
-				FILE *file = popen(request, "r");
+				FILE *file = popen("ls", "r");
 				if (file)
 				{
 					while (fgets(line, sizeof(line), file))
@@ -514,11 +516,11 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 
 				send(client_fd, response, strlen(response), 0);
 			}
-			else if (strcmp(command, "pwd") == 0)
+			else if (strcmp(command, "PWD") == 0)
 			{
 				char line[128];
 
-				FILE *file = popen(request, "r");
+				FILE *file = popen("pwd", "r");
 				if (file)
 				{
 					while (fgets(line, sizeof(line), file))
@@ -529,10 +531,23 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 				}
 
 				send(client_fd, response, strlen(response), 0);
+			} 
+			else if (strcmp(command, "CD") == 0) 
+			{
+	            char *token = strtok(NULL, delim);
+	            if (chdir(token) != 0) 
+	            {
+	            	strcat(response, "Directory change unsuccessful.\n");
+					send(client_fd, response, strlen(response), 0);
+	            } else 
+	            {
+	            	strcat(response, "Successfully changed directory.\n");
+					send(client_fd, response, strlen(response), 0);
+	            }
 			}
 			else
 			{
-				strcat(response, "Authenticate first.");
+				strcat(response, "Authenticate first.\n");
 				send(client_fd, response, strlen(response), 0);
 			}
 		}
@@ -543,7 +558,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 		}
 		else
 		{
-			strcat(response, "Authenticate first.");
+			strcat(response, "Authenticate first.\n");
 			send(client_fd, response, strlen(response), 0);
 		}
 	}
