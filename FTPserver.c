@@ -232,65 +232,65 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 			// Handle the USER command case
 			if (strcmp(command, "USER") == 0)
 			{
-				if (user_authenticated)
-				{
-					strcat(response, "User already logged in.");
-					send(client_fd, response, strlen(response), 0);
-					printf("User %s already logged in.\n", command);
-				}
-
+				// Get the username
 				command = strtok(NULL, delim);
 
 				printf("User %s attempting to authenticate.\n", command);
 
-				bool found = false;
-
+				// Try to find the user
+				// Pass through all users
 				for (int i = 0; i < NUM_USERS; i++)
 				{
+					// If the username is correct
 					if (strcmp(auth_users[i].userName, command) == 0)
 					{
-						if (auth_users[i].state == 0)
+						// If they are not yet logged in
+						if (auth_users[i].state != 2)
 						{
-							strcat(response, "331 Username OK, password required!");
-							auth_users[i].state = 1;
-							auth_users[i].sock_num = client_fd;
+							// Send the response telling that the username 
+							// is good
+							strcat(response, 
+									"331 Username OK, password required!");
 							send(client_fd, response, strlen(response), 0);
+							// Set the state of the user to 1 (username entered)
+							auth_users[i].state = 1;
+							// Bind the user to this specific socket
+							auth_users[i].sock_num = client_fd;
 							printf("User %s exists. Waiting for PASS.\n", command);
 						}
+						// Otherwise, tell them the user is already logged in
 						else
 						{
 							strcat(response, "User already logged in.");
 							send(client_fd, response, strlen(response), 0);
 							printf("User %s already logged in.\n", command);
 						}
-						found = true;
+						return;
 					}
 				}
-
-				if (!found)
-				{
-					strcat(response, "Username does not exist!");
-					send(client_fd, response, strlen(response), 0);
-					printf("User %s does not exist.\n", command);
-				}
+				// If we never find the specific user, tell the client that the 
+				// username given does not exist
+				strcat(response, "Username does not exist!");
+				send(client_fd, response, strlen(response), 0);
+				printf("User %s does not exist.\n", command);
 			}
+			// Handle the password command
 			else if (strcmp(command, "PASS") == 0)
 			{
-				if (user_authenticated)
-				{
-					strcat(response, "User already logged in.");
-					send(client_fd, response, strlen(response), 0);
-					printf("User %s already logged in.\n", command);
-				}
-
+				// Get the password from the command
 				command = strtok(NULL, delim);
-
+				
+				// Go through all the users
 				for (int i = 0; i < NUM_USERS; i++)
-				{
+				{	
+					// Check if their socket number matches the socket that 
+					// entered the password
 					if (auth_users[i].sock_num == client_fd)
-					{
+					{	
+						// If it matches their password
 						if (strcmp(command, auth_users[i].password) == 0)
 						{
+							// Set them to authenticated
 							strcat(response, "Authentication complete!");
 							send(client_fd, response, strlen(response), 0);
 							printf("User %s authenticated.\n",
@@ -299,6 +299,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						}
 						else
 						{
+							// Otherwise, tell them they entered it wrong
 							strcat(response, "Incorrect password!");
 							send(client_fd, response, strlen(response), 0);
 							printf("User %s gave incorrect password.\n",
@@ -307,33 +308,40 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					}
 				}
 			}
+			// If they are not authenticated and they say quit
 			else if (strcmp(command, "QUIT") == 0 || strcmp(command, "quit") == 0)
 			{
 				close_client(client_fd, auth_users, sock_array);
 			}
+			// Tell them to authenticate
 			else
 			{
 				strcat(response, "Authenticate first.\n");
 				send(client_fd, response, strlen(response), 0);
 			}
 		}
-		else
-		{
+		// If the user is authenticated
+		else 
+		{	
+			// The PUT command
 			if (strcmp(command, "PUT") == 0)
 			{
+				// Respond to USER that we are ready for PUT
+				// This effectively means that they are authenticated
 				memset(response, 0, sizeof(response));
 				strcat(response, "Ready for put!");
 				send(client_fd, response, sizeof(response), 0);
 
-				//forking
+				// Forking to receive the data from the user
 				int pid = fork();
 				if (pid == 0)
 				{
-
+					// Getting the file name
 					command = strtok(NULL, delim);
 
 					printf("File %s is pending to be transfered.\n", command);
 
+					// Open a new socket
 					int put_server_fd = socket(AF_INET, SOCK_STREAM, 0);
 					if (put_server_fd < 0)
 					{
@@ -341,56 +349,74 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						return;
 					}
 
+					// Get all the details together for the port we are 
+					// connecting to
 					struct sockaddr_in put_server_address;
 					memset(&put_server_address, 0, sizeof(put_server_address));
 
 					put_server_address.sin_family = AF_INET;
+					// Connecting to socket 0 will allow us to extract an open 
+					// port later
 					put_server_address.sin_port = htons(0);
 					put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
-					if (bind(put_server_fd, (struct sockaddr *)&put_server_address, sizeof(put_server_address)) < 0)
+					// Bind to the port
+					if (bind(put_server_fd, 
+							(struct sockaddr *)&put_server_address, 
+							sizeof(put_server_address)) < 0)
 					{
 						perror("Bind: ");
 						return;
 					}
 
+					// We can extract the port
 					socklen_t len = sizeof(put_server_address);
-					if (getsockname(put_server_fd, (struct sockaddr *)&put_server_address, &len) == -1)
+					if (getsockname(put_server_fd, 
+						(struct sockaddr *)&put_server_address, &len) == -1)
 					{
 						perror("getsockname");
 						return;
 					}
-
+					
+					// Listen for connections
 					if (listen(put_server_fd, 2) < 0)
 					{
 						perror("Listen: ");
 						return;
 					}
 
+					// Getting our port number
 					int port_num = ntohs(put_server_address.sin_port);
 					printf("Connecting to port %i for file transfer.\n", htons(port_num));
 
-					// sending the port number to the client
+					// Sending the port number to the client
 					send(client_fd, &port_num, sizeof(port_num), 0);
 
-					//4. accept
-					struct sockaddr_in put_client_address;				 //we to pass this to accept method to get client info
-					int client_address_len = sizeof(put_client_address); // accept also needs client_address length
+					// We to pass this to accept method to get client info
+					struct sockaddr_in put_client_address;		
+					// Accept also needs client_address length		 
+					int client_address_len = sizeof(put_client_address); 
 
 					char put_client_name[50];
 
-					int put_client_fd = accept(put_server_fd, (struct sockaddr *)&put_client_address, (socklen_t *)&client_address_len);
-					char message[100];
-					inet_ntop(AF_INET, &put_client_address.sin_addr, put_client_name, sizeof(put_client_name));
+					// Accepting the connection
+					int put_client_fd = accept(put_server_fd, 
+					(struct sockaddr *)&put_client_address, 
+					(socklen_t *)&client_address_len);
 
+					char message[100];
+					inet_ntop(AF_INET, &put_client_address.sin_addr, 
+							  put_client_name, sizeof(put_client_name));
+
+					// If there were any errors accepting
 					if (put_client_fd < 0)
 					{
 						perror("Accept: ");
 						return;
 					}
 
+					// Storing the filename we're gonna save
 					char filename[50];
-					int file_size = 0;
 					char server_file[50];
 					strcpy(server_file, "Server-");
 					strcat(server_file, command);
@@ -398,6 +424,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					printf("Serverfile : %s \n", server_file);
 					strcpy(filename, server_file);
 
+					// Create the file on the server side
 					printf("Creating a file : %s \n", filename);
 					FILE *file;
 					if (!(file = fopen(filename, "w")))
@@ -409,61 +436,63 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					{
 						char message[256];
 
-						int myreturn = 0;
-
+						// Save the file
 						memset(message, 0, sizeof(message));
 						while (recv(put_client_fd, message, sizeof(message), 0) > 0)
 						{
 							fputs(message, file);
 							memset(message, 0, sizeof(message));
 						}
-
+						
+						// Close the file
 						fclose(file);
 
 						printf("PUT function completed.\n");
 					}
 
-					fflush(stdout);
-
-					// strcat(response, "Transfer of the file done.");
-					// send(put_client_fd, response, strlen(response), 0);
-
+					// Close the ports 
 					close(put_client_fd);
 					close(put_server_fd);
 
+					// Close this process
 					exit(0);
 				}
 
 				return;
+			}
 
-			} //ending PUT
-
-			// staring GET function
+			// Implementing the GET function
 			else if (strcmp(command, "GET") == 0)
 			{
+				// Getting the file name
 				command[strcspn(command, "\n")] = 0;
-
 				char filename[50];
 				command = strtok(NULL, delim);
 				strcpy(filename, command);
 
 				printf("Requesting file : %s \n", filename);
 				FILE *file;
+
+				// Check first if the file exists
 				if (!(file = fopen(filename, "r")))
 				{
+					// Tell client if it doesn't exist
 					strcpy(response, "Nonexistent");
 					send(client_fd, response, sizeof(response), 0);
 					perror("File does not exist.\n");
 				}
 				else
-				{
+				{	
+					// Open a new process over which we will transfer
 					int pid = fork();
 					if (pid == 0)
 					{
+						// Tell client that the file exists
 						memset(response, 0, sizeof(response));
 						strcpy(response, "Existent");
 						send(client_fd, response, sizeof(response), 0);
 
+						// Open new socket
 						int get_server_fd = socket(AF_INET, SOCK_STREAM, 0);
 						if (get_server_fd < 0)
 						{
@@ -471,6 +500,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 							return;
 						}
 
+						// Get the port 
 						struct sockaddr_in get_server_address;
 						memset(&get_server_address, 0, sizeof(get_server_address));
 
@@ -535,11 +565,6 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						}
 
 						fclose(file);
-
-						//4. close
-						// recv(get_client_fd, response, sizeof(response), 0);
-						// printf("%s\n", response);
-						// printf("here6\n");
 
 						close(get_client_fd);
 						close(get_server_fd);
