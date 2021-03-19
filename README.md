@@ -37,7 +37,7 @@ For navigating the directories, we have implemented the CD, LS, PWD commands whi
 We have expanded our user-password pairs to contain instructor's name, hence the valid pairs are: 
 
 <ul>
-    li><code>USER Khalid PASS KMPass</code></li>
+    <li><code>USER Khalid PASS KMPass</code></li>
     <li><code>USER Aisha PASS AHPass</code></li>
     <li><code>USER Daniel PASS DBPass</code></li>
 </ul>
