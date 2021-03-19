@@ -500,7 +500,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 							return;
 						}
 
-						// Get the port 
+						// Get the port number
 						struct sockaddr_in get_server_address;
 						memset(&get_server_address, 0, sizeof(get_server_address));
 
@@ -514,6 +514,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 							return;
 						}
 
+						// Get socket
 						socklen_t len = sizeof(get_server_address);
 						if (getsockname(get_server_fd, (struct sockaddr *)&get_server_address, &len) == -1)
 						{
@@ -533,10 +534,6 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						// sending the port number to the client
 						send(client_fd, &port_num, sizeof(port_num), 0);
 
-						//2. bind
-
-						// finding the available port number to send to the client
-
 						//4. accept
 						struct sockaddr_in get_client_address;				 //we to pass this to accept method to get client info
 						int client_address_len = sizeof(get_client_address); // accept also needs client_address length
@@ -553,6 +550,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 							return;
 						}
 
+						// Save the file
 						char line[256];
 						while (fgets(line, sizeof(line), file) != NULL) //read the file until NULL
 						{
@@ -565,7 +563,8 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						}
 
 						fclose(file);
-
+						
+						// Close these sockets and exit the process
 						close(get_client_fd);
 						close(get_server_fd);
 
@@ -581,6 +580,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 			{
 				char line[128];
 
+				// Open the command locally and return the output
 				FILE *file = popen("ls", "r");
 				if (file)
 				{
@@ -597,6 +597,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 			{
 				char line[128];
 
+				// Open the command locally and return the output
 				FILE *file = popen("pwd", "r");
 				if (file)
 				{
@@ -611,7 +612,9 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 			}
 			else if (strcmp(command, "CD") == 0)
 			{
+				// Get the directory to change to
 				char *token = strtok(NULL, delim);
+				// If theres no errors, we inform the user
 				if (chdir(token) != 0)
 				{
 					strcat(response, "Directory change unsuccessful.\n");
@@ -623,6 +626,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					send(client_fd, response, strlen(response), 0);
 				}
 			}
+			// If users says quit, we quit
 			else if (strcmp(command, "QUIT") == 0 || strcmp(command, "quit") == 0)
 			{
 				close_client(client_fd, auth_users, sock_array);
@@ -645,6 +649,10 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 	return;
 }
 
+/*
+ * This function removes a user from the user array and a socket from the socket
+ * array.
+ */
 void close_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 {
 	close(client_fd);
