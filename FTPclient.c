@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     // ----- Shell loop -----
 
     char command[MAX_COMMAND_SIZE];
-    char response[100]; //string to hold the server esponse
+    char response[256]; //string to hold the server esponse
 
     while (1)
     {
@@ -202,131 +202,99 @@ int main(int argc, char *argv[])
         {
             command[strcspn(command, "\n")] = 0;
             send(server_fd, command, strlen(command), 0);
+            memset(response,  0,  sizeof(response));
             recv(server_fd, response, sizeof(response), 0);
-            if (strcmp(response, "Nonexistent")==0) 
+            if (strcmp(response, "Nonexistent") == 0)
+            {
+                printf("There's no such file on the server.");
+            }
+            else if (strcmp(response, "Existent") == 0)
+            {
+
+                printf("The transfer of the file from server starts...\n");
+
+                int get_server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+                if (get_server_fd < 0)
                 {
-                    printf("There's no such file on the server.");
+                    perror("Socket: ");
+                    return -1;
                 }
-            else if (strcmp(response, "Existent")==0) 
+
+                struct sockaddr_in get_server_address;
+                memset(&get_server_address, 0, sizeof(get_server_address));
+
+                int port_num;
+                recv(server_fd, &port_num, sizeof(port_num), 0);
+
+                get_server_address.sin_family = AF_INET;
+                get_server_address.sin_port = htons(port_num);
+                get_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+                printf("File Server port %i \n", get_server_address.sin_port);
+
+                printf("here1\n");
+
+                //2 connect
+                if (connect(get_server_fd, (struct sockaddr *)&get_server_address, sizeof(get_server_address)) < 0)
                 {
+                    perror("Connect :");
 
-
-                    printf("The transfer of the file from server starts...\n");
-
-
-                    int get_server_fd = socket(AF_INET, SOCK_STREAM, 0);
-
-                    if (get_server_fd < 0)
-                    {
-                        perror("Socket: ");
-                        return -1;
-                    }
-
-                    struct sockaddr_in get_server_address;
-                    memset(&get_server_address, 0, sizeof(get_server_address));
-
-                    int port_num;
-                    recv(server_fd, &port_num, sizeof(port_num), 0);
-
-                    get_server_address.sin_family = AF_INET;
-                    get_server_address.sin_port = htons(port_num);
-                    get_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-                    printf("File Server port %i \n", get_server_address.sin_port);
-
-                    //2 connect
-                    if (connect(get_server_fd, (struct sockaddr *)&get_server_address, sizeof(get_server_address)) < 0)
-                    {
-                        perror("Connect :");
-
-                        return -1;
-                    }
-
-                    // GETTING file from the server
-                    char delim[] = " ";
-                    char *filenm = strtok(command, delim);
-                    filenm = strtok(NULL, delim);
-
-
-                    char filename[50];
-                    int file_size = 0;
-                    char client_file[50];
-
-                    strcpy(client_file, "Client-");
-                    strcat(client_file, filenm);
-
-                    recv(get_server_fd, &file_size, sizeof(file_size), 0);
-                    printf("Size of the file is : %d \n", file_size);
-
-
-                    printf("Creating a file : %s \n", client_file);
-                    FILE *file;
-                    if (!(file = fopen(client_file, "w")))
-                    {
-                        perror("Sorry, this file can't be created.");
-                        return 0;
-                    }
-                    else
-                    {
-
-                        char line[256];
-                        memset(line, 0, sizeof(line));
-
-                        int ctr = 0;
-
-                        while (recv(get_server_fd, line, sizeof(line), 0) >= 0)
-                        {
-
-                            int write_file = fwrite(line, 1, sizeof(line), file);
-
-                            if (write_file < sizeof(line))
-                            {   
-                                printf("There you go!\n");
-                                
-                            }
-
-                            if (write_file < 0)
-                            {
-                                perror("Error when writing into the file. Try again.\n");
-                                return 0;
-                            }
-
-                            ctr += sizeof(line);
-
-                            if (ctr >= file_size)
-                            {   
-                                printf("Size of the ctr is : %d \n", ctr);
-                                break;
-                            }
-                            memset(line, 0, sizeof(line));
-                        }
-
-                        fclose(file);
-                    }
-
-                    fflush(stdout);
-
-                    char response[100];
-
-                    strcat(response, "Transfer of the file done. Port closed. \n");
-                    send(get_server_fd, response, strlen(response), 0);
-
-                    printf("Transfer of the file %s done. New file is saved as %s. \n Port closed. \n", filenm, client_file);
-
-                    close(get_server_fd);
-
-
-
-
+                    return -1;
                 }
+
+                printf("here2\n");
+
+                // GETTING file from the server
+                char delim[] = " ";
+                char *filenm = strtok(command, delim);
+                filenm = strtok(NULL, delim);
+
+                char filename[50];
+                int file_size = 0;
+                char client_file[50];
+
+                strcpy(client_file, "Client-");
+                strcat(client_file, filenm);
+
+                FILE *file;
+                if (!(file = fopen(client_file, "w")))
+                {
+                    perror("Sorry, this file can't be created.");
+                    return 0;
+                }
+                else
+                {
+                    char message[256];
+
+                    printf("here3\n");
+
+                    memset(message,0,sizeof(message));
+                    while (recv(get_server_fd, message, sizeof(message), 0) > 0)
+                    {
+                        // printf("%s\n",message);
+                        fputs(message, file);
+                        memset(message, 0, sizeof(message));
+                    }
+
+                    printf("here4\n");
+
+                    fclose(file);
+                }
+
+                fflush(stdout);
+
+                // char response[100];
+
+                // strcat(response, "Transfer of the file done. Port closed. \n");
+                // send(get_server_fd, response, strlen(response), 0);
+
+                printf("Transfer of the file %s done. New file is saved as %s. \n Port closed. \n", filenm, client_file);
+
+                close(get_server_fd);
+            }
+            printf("%s\n", response);
             fflush(stdout);
-            
         }
-
-
-
-
-
-
 
         else if (!strncmp(command, "cd", 2) || !strncmp(command, "ls", 2) || !strncmp(command, "pwd", 3))
         {
