@@ -39,32 +39,27 @@ An example of execution of all commands on the client side looks like:
 
 <ul>
     <li><code>USER Aisha </code></li>
-    <li><code> 331 Username OK, password required! </code></li>
-    
-    <li><code>PASS AHPass</code></li>
-    <li><code>Authentication complete!</code></li>
-    
+    <code> 331 Username OK, password required! </code>
+     <li><code>PASS AHPass</code></li>
+    <code>Authentication complete!</code>    
     <li><code>PUT new.txt</code></li>
     <li><code>Sending file : new.txt 
     Connecting to port 12793 for file transfer.
-    PUT function completed.</code></li>
-    
+    PUT function completed.</code></li>    
     <li><code>GET tests.txt</code></li>
     <li><code>The transfer of the file from server starts...
     Connecting to port 16121 for file transfer.
     Transfer of the file tests.txt done. New file is saved as Client-tests.txt. 
     Port closed.</code></li>
-    
     <li><code>CD Server</code></li>
-    <li><code>Successfully changed directory.</code></li>
-    
+    <li><code>Successfully changed directory.</code></li>    
     <li><code>LS </code></li>
-    <li><code>FTPserver FTPserver.c Server-new.txt </code></li>
-    
+    <li><code>FTPserver FTPserver.c Server-new.txt </code></li>    
     <li><code>PWD </code></li>
-    <li><code>/Users/aishahodzic/Documents/GitHub/FTP-Daniel-Aisha/Server </code></li>
-    
+    <li><code>/Users/aishahodzic/Documents/GitHub/FTP-Daniel-Aisha/Server </code></li>    
     <li><code>QUIT </code></li>
+    
+  
 </ul>
 
 We have developed the *FTPserver.c* and *FTPclient.c* such that they are able to respond with an appropriate error messages in case of any inconsistency. Most importantly, error messages are displayed in case of lacking user authentication, invalid ftp commands, non-existent files being requested for upload or download and user typing an incorrect password. We have also added USER Khalid with PASS KMPass. 
