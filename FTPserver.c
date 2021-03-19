@@ -408,33 +408,43 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					struct sockaddr_in get_server_address;
 					memset(&get_server_address, 0, sizeof(get_server_address));
 
-					srand(time(0));
-
-					//generate rand port number between 1,024–49,151
-					int port_num = (rand() % (49151 - 1024 + 1)) + 1024;
-					// printf("port num is %i\n", port_num);
-
-					send(client_fd, &port_num, sizeof(port_num), 0);
 
 					get_server_address.sin_family = AF_INET;
-					get_server_address.sin_port = htons(port_num);
+					get_server_address.sin_port = htons(0);
 					get_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-					printf("Opening port %i for file transfer. \n", get_server_address.sin_port);
 
-					//2. bind
 					if (bind(get_server_fd, (struct sockaddr *)&get_server_address, sizeof(get_server_address)) < 0)
 					{
 						perror("Bind: ");
 						return;
 					}
 
-					//3. listen
+					socklen_t len = sizeof(get_server_address);
+					if (getsockname(get_server_fd, (struct sockaddr *)&get_server_address, &len) == -1) {
+					    perror("getsockname");
+					    return;
+					}
+
 					if (listen(get_server_fd, 2) < 0)
 					{
 						perror("Listen: ");
 						return;
 					}
 
+					int port_num = ntohs(get_server_address.sin_port);
+					printf("Port number here is %i\n", htons(port_num));
+					
+					// sending the port number to the client 
+					send(client_fd, &port_num, sizeof(port_num), 0);
+					
+
+					//2. bind
+					
+
+					
+
+					// finding the available port number to send to the client 
+					
 					//4. accept
 					struct sockaddr_in get_client_address;				 //we to pass this to accept method to get client info
 					int client_address_len = sizeof(get_client_address); // accept also needs client_address length
