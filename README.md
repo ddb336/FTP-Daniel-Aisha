@@ -34,6 +34,14 @@ After this, authenticate with one of the following user-password pairs:<br>
 For the final version of the project, we have implement the **PUT, GET, CD, !CD, LS, !LS, PWD**, and **!PWD** commands in *FTPserver.c* and *FTPclient.c*. We have incoorported these functions with previously developed USER and PASS commands that serve as a way to authenticate the user in the beginning. The PUT commands is used to upload a file from the current client directory to the current server directory. GET command is used to download a file from the current server directory to the current client directory. Both of the command are executed such that a new TCP connection is established on a different port for the data transfer. The port is picked any of the available port, which prevents the issue of choosing unavailable ports and refused connections. 
 
 For navigating the directories, we have implemented the CD, LS, PWD commands which can change the current directory, list all the files under the current directory and displays the current directory. The work for both client and the server, so that each of them can move between the directories and inspect them. 
+We have expanded our user-password pairs to contain instructor's name, hence the valid pairs are: 
+
+<ul>
+    li><code>USER Khalid PASS KMPass</code></li>
+    <li><code>USER Aisha PASS AHPass</code></li>
+    <li><code>USER Daniel PASS DBPass</code></li>
+</ul>
+
 
 An example of execution of all commands on the client side looks like: 
 
@@ -60,7 +68,7 @@ An example of execution of all commands on the client side looks like:
   
 </ul>
 
-We have developed the *FTPserver.c* and *FTPclient.c* such that they are able to respond with an appropriate error messages in case of any inconsistency. Most importantly, error messages are displayed in case of lacking user authentication, invalid ftp commands, non-existent files being requested for upload or download and user typing an incorrect password. We have also added USER Khalid with PASS KMPass. 
+We have developed the *FTPserver.c* and *FTPclient.c* such that they are able to respond with an appropriate error messages in case of any inconsistency. Most importantly, error messages are displayed in case of lacking user authentication, invalid ftp commands, non-existent files being requested for upload or download and user typing an incorrect password. 
 
 We have testing our program for a number of scenarios, including the transfer of different files which you can see under **tests.txt** file. 
 
