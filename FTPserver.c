@@ -125,7 +125,8 @@ int main()
 		// Adding child sockets to set
 		for (int i = 0; i < MAX_SOCKETS; i++)
 		{
-			// If the socket
+			// If the socket is valid (non-zero, the array is initialized to 0),
+			// we add it to the set
 			if (sock_array[i] > 0)
 			{
 				FD_SET(sock_array[i], &readyfd);
@@ -137,22 +138,29 @@ int main()
 			}
 		}
 
+		// Waiting on the select function, this will go through when there's a 
+		// request on one of the sockets
 		if (select(max_fd + 1, &readyfd, NULL, NULL, NULL) < 0)
 		{
 			perror("Select\n");
 			return -1;
 		}
 
+		// Go through the sockets and handle the request
 		for (int i = 0; i <= max_fd; i++)
 		{
+			// If it's the socket chosen by select()
 			if (FD_ISSET(i, &readyfd))
-			{
+			{	
+				// If it's a new connect 
 				if (i == server_fd)
-				{
+				{	
+					// Accept the connection
 					int client_fd = accept(server_fd, NULL, NULL);
 					FD_SET(client_fd, &readyfd);
 					if (client_fd > max_fd)
 						max_fd = client_fd;
+					// Set the first 0 in the socket array to the new socket
 					for (int i = 0; i < MAX_SOCKETS; i++)
 					{
 						if (sock_array[i] == 0)
@@ -166,46 +174,62 @@ int main()
 					break;
 				}
 				else
-				{
+				{	
+					// Otherwise serve the client
 					serve_client(i, auth_users, sock_array);
 					FD_CLR(i, &readyfd);
 				}
 			}
 		}
 	}
-
+	
 	close(server_fd);
 }
 
 /*
  * This function serves the client passed in as client_fd.
+ * It takes the main client socket descriptor, the array of users, and the array
+ * of sockets.
+ * It will implement the outcome of various functionalities that the client 
+ * requests.
  */
 void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 {
-
+	/*
+	 * Checking first if the user is authenticated.
+	 */
 	bool user_authenticated = false;
-
 	for (int i = 0; i < NUM_USERS; i++)
-	{
+	{	
+		// If our connected socket corresponds to a logged in user
 		if (auth_users[i].sock_num == client_fd && auth_users[i].state == 2)
 		{
+			// We are authenticated
 			user_authenticated = true;
 		}
 	}
 
-	char request[128];
+	// Setting a request string
+	char request[256];
 	memset(request, 0, sizeof(request));
 
+	// Setting a response string
 	char response[256];
 	memset(response, 0, sizeof(response));
 
+	// Delimiter for getting substrings
 	char delim[] = " ";
 
+	// If we have recieved a message from the client
 	if (recv(client_fd, request, sizeof(request) - 1, 0) > 0)
 	{
+		// Get the command portion of the request 
 		char *command = strtok(request, delim);
+
+		// If they are not authenticated
 		if (!user_authenticated)
 		{
+			// Handle the USER command case
 			if (strcmp(command, "USER") == 0)
 			{
 				if (user_authenticated)
@@ -476,7 +500,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						}
 
 						int port_num = ntohs(get_server_address.sin_port);
-						printf("Port number here is %i\n", htons(port_num));
+						printf("Connecting to port %i for file transfer.\n", htons(port_num));
 
 						// sending the port number to the client
 						send(client_fd, &port_num, sizeof(port_num), 0);

@@ -128,23 +128,18 @@ int main(int argc, char *argv[])
             ptr = strtok(NULL, delim);
             strcpy(filename, ptr);
 
-            if (!fopen(filename, "r")) 
+            FILE *file;
+            if (!(file = fopen(filename, "r")))
             {
-                printf("File doesn't exist.\n");
+                perror("File can't be opened...");
                 continue;
             }
-
-            send(server_fd, command, strlen(command), 0);
-            recv(server_fd, response, sizeof(response), 0);
-
-            if (!strcmp(response, "Ready for put!"))
+            else
             {
-                FILE *file;
-                if (!(file = fopen(filename, "r")))
-                {
-                    perror("File can't be opened..");
-                }
-                else
+                send(server_fd, command, strlen(command), 0);
+                recv(server_fd, response, sizeof(response), 0);
+
+                if (!strcmp(response, "Ready for put!"))
                 {
                     printf("Sending file : %s \n", filename);
 
@@ -195,10 +190,10 @@ int main(int argc, char *argv[])
 
                     close(put_server_fd);
                 }
-            }
-            else
-            {
-                printf("%s", response);
+                else
+                {
+                    printf("%s", response);
+                }
             }
         }
 
@@ -234,7 +229,7 @@ int main(int argc, char *argv[])
                 get_server_address.sin_family = AF_INET;
                 get_server_address.sin_port = htons(port_num);
                 get_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-                printf("File Server port %i \n", get_server_address.sin_port);
+                printf("Connecting to port %i for file transfer.\n", get_server_address.sin_port);
 
                 //2 connect
                 if (connect(get_server_fd, (struct sockaddr *)&get_server_address, sizeof(get_server_address)) < 0)
