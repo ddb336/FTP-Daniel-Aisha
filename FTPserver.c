@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define NUM_USERS 2
 #define MAX_SOCKETS 30
@@ -390,6 +391,9 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 				}
 				else
 				{
+					int pid = fork();
+					if (pid == 0)
+					{
 					memset(response, 0, sizeof(response));
 					strcpy(response, "Existent");
 					send(client_fd, response, sizeof(response), 0);
@@ -403,6 +407,8 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 
 					struct sockaddr_in get_server_address;
 					memset(&get_server_address, 0, sizeof(get_server_address));
+
+					srand(time(0));
 
 					//generate rand port number between 1,024–49,151
 					int port_num = (rand() % (49151 - 1024 + 1)) + 1024;
@@ -447,9 +453,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						return;
 					}
 
-					int pid = fork();
-					if (pid == 0)
-					{
+					
 						printf("here4\n");
 						char line[256];
 						while (fgets(line, sizeof(line), file) != NULL) //read the file until NULL
@@ -468,11 +472,15 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						// recv(get_client_fd, response, sizeof(response), 0);
 						// printf("%s\n", response);
 						// printf("here6\n");
+						printf("server fd: %d\n", get_server_fd);
 
 						close(get_client_fd);
+						close(get_server_fd);
+						printf("quitting\n");
+						exit(0);
 					}
 
-					close(get_server_fd);
+
 					return;
 				}
 			}

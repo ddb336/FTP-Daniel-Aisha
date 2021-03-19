@@ -268,10 +268,14 @@ int main(int argc, char *argv[])
 
                     printf("here3\n");
 
+                    printf("server fd: %d\n", get_server_fd);
+
+                    int myreturn = 0;
+
                     memset(message,0,sizeof(message));
-                    while (recv(get_server_fd, message, sizeof(message), 0) > 0)
+                    while ((myreturn = recv(get_server_fd, message, sizeof(message), 0)) > 0)
                     {
-                        // printf("%s\n",message);
+                        printf("%d\n",myreturn);
                         fputs(message, file);
                         memset(message, 0, sizeof(message));
                     }
