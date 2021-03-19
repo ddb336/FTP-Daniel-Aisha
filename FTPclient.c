@@ -14,7 +14,7 @@ bool is_valid_ip(char *ipString);
 
 int main(int argc, char *argv[])
 {
-    // ----- Dealing with arguments -----
+    // ----- Checking if given arguments are correct -----
 
     if (argc != 3)
     {
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
         perror("Socket: ");
         return (-1);
     }
-
+    // making a server_fd socket 
     struct sockaddr_in server_address;
     memset(&server_address, 0, sizeof(server_address));
 
@@ -90,13 +90,14 @@ int main(int argc, char *argv[])
         fgets(command, MAX_COMMAND_SIZE, stdin); //more safe but has no \n at the end,
         command[strcspn(command, "\n")] = 0;     // adding the \n
 
+        // if given command is quit, quit immediately 
         if (!strncmp(command, "QUIT", 4) || !strncmp(command, "quit", 4))
         {
             send(server_fd, "QUIT", 4, 0);
             close(server_fd);
             break;
         }
-
+        // the user types in  "USER" command
         else if (!strncmp(command, "USER", 4))
         {
             command[strcspn(command, "\n")] = 0;
@@ -104,7 +105,7 @@ int main(int argc, char *argv[])
             recv(server_fd, response, sizeof(response), 0);
             printf("%s\n", response);
         }
-
+        // the user types in  "PASS" command
         else if (!strncmp(command, "PASS", 4))
         {
             command[strcspn(command, "\n")] = 0;
@@ -112,14 +113,14 @@ int main(int argc, char *argv[])
             recv(server_fd, response, sizeof(response), 0);
             printf("%s\n", response);
         }
-
+        // the user types in  "PUT" command
         else if (!strncmp(command, "PUT", 3))
         {
             command[strcspn(command, "\n")] = 0;
 
             char new_command[20];
             strcpy(new_command, command);
-
+            // read which file did the user request for upload
             char delim[] = " ";
             char *ptr = strtok(new_command, delim);
 
@@ -127,15 +128,18 @@ int main(int argc, char *argv[])
 
             ptr = strtok(NULL, delim);
             strcpy(filename, ptr);
-
+            // try opening the given file
             FILE *file;
             if (!(file = fopen(filename, "r")))
             {
+                // if unable to open, exit the statement
                 perror("File can't be opened...");
                 continue;
             }
+            // the file is valid and existing 
             else
             {
+
                 memset(response,0,sizeof(response));
                 send(server_fd, command, sizeof(command), 0);
                 recv(server_fd, response, sizeof(response), 0);
@@ -144,6 +148,7 @@ int main(int argc, char *argv[])
                 {
                     printf("Sending file : %s \n", filename);
 
+                    // open a new TCP connection for data transfer 
                     int put_server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
                     if (put_server_fd < 0)
@@ -155,7 +160,9 @@ int main(int argc, char *argv[])
                     struct sockaddr_in put_server_address;
                     memset(&put_server_address, 0, sizeof(put_server_address));
 
+                    
                     int port_num;
+                    // get an available port for binding sent by server
                     recv(server_fd, &port_num, sizeof(port_num), 0);
 
                     put_server_address.sin_family = AF_INET;
@@ -163,7 +170,7 @@ int main(int argc, char *argv[])
                     put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
                     printf("Connecting to port %i for file transfer.\n", put_server_address.sin_port);
 
-                    //2 connect
+                    //2 connect to the found port 
                     if (connect(put_server_fd, (struct sockaddr *)&put_server_address, sizeof(put_server_address)) < 0)
                     {
                         perror("Connect :");
@@ -171,11 +178,12 @@ int main(int argc, char *argv[])
                         return -1;
                     }
 
-                    // printf("File Server port %i \n", put_server_address.sin_port);
+                    
                     char message[100];
 
                     char line[256];
-                    while (fgets(line, sizeof(line), file) != NULL) //read the file until NULL
+                    //read the file for uploading until NULL
+                    while (fgets(line, sizeof(line), file) != NULL) 
                     {
                         
                         if (send(put_server_fd, line, sizeof(line), 0) == -1) //send the server response to the client
@@ -185,11 +193,11 @@ int main(int argc, char *argv[])
                         }
                         memset(line, 0, sizeof(line));
                     }
-
+                    // close the file 
                     fclose(file);
 
                     printf("PUT function completed.\n");
-
+                    // close the socket 
                     close(put_server_fd);
                 }
                 else
@@ -198,22 +206,26 @@ int main(int argc, char *argv[])
                 }
             }
         }
-
+        // the user types in  "GET" command
         else if (!strncmp(command, "GET", 3))
         {
             command[strcspn(command, "\n")] = 0;
             send(server_fd, command, strlen(command), 0);
             memset(response, 0, sizeof(response));
             recv(server_fd, response, sizeof(response), 0);
+            // check if the file exists
             if (strcmp(response, "Nonexistent") == 0)
-            {
+            {   
+                // if the file doesn't exit, exit the statement 
                 printf("There's no such file on the server.\n");
             }
+            // the file exists
             else if (strcmp(response, "Existent") == 0)
             {
 
                 printf("The transfer of the file from server starts...\n");
 
+                // open a new socket for file transfer 
                 int get_server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
                 if (get_server_fd < 0)
@@ -226,6 +238,8 @@ int main(int argc, char *argv[])
                 memset(&get_server_address, 0, sizeof(get_server_address));
 
                 int port_num;
+                 // get an available port number for binding sent by server
+
                 recv(server_fd, &port_num, sizeof(port_num), 0);
 
                 get_server_address.sin_family = AF_INET;
@@ -241,7 +255,7 @@ int main(int argc, char *argv[])
                     return -1;
                 }
 
-                // GETTING file from the server
+                
                 char delim[] = " ";
                 char *filenm = strtok(command, delim);
                 filenm = strtok(NULL, delim);
@@ -250,10 +264,12 @@ int main(int argc, char *argv[])
                 int file_size = 0;
                 char client_file[50];
 
+                // add "Client-" to the file in case FTPserver and FTPclient are in same directory 
                 strcpy(client_file, "Client-");
                 strcat(client_file, filenm);
 
                 FILE *file;
+                // Create the file for writing 
                 if (!(file = fopen(client_file, "w")))
                 {
                     perror("Sorry, this file can't be created.");
@@ -264,10 +280,11 @@ int main(int argc, char *argv[])
                     char message[256];
 
                     int myreturn = 0;
-
+                    // start receiving data from the server
                     memset(message, 0, sizeof(message));
                     while ((myreturn = recv(get_server_fd, message, sizeof(message), 0)) > 0)
                     {
+                        // write received data into the file 
                         fputs(message, file);
                         memset(message, 0, sizeof(message));
                     }
@@ -277,11 +294,7 @@ int main(int argc, char *argv[])
 
                 fflush(stdout);
 
-                // char response[100];
-
-                // strcat(response, "Transfer of the file done. Port closed. \n");
-                // send(get_server_fd, response, strlen(response), 0);
-
+                // notifying that the download has been successfully completed
                 printf("Transfer of the file %s done. New file is saved as %s. \nPort closed. \n", filenm, client_file);
 
                 close(get_server_fd);
@@ -293,7 +306,7 @@ int main(int argc, char *argv[])
 
             fflush(stdout);
         }
-
+        // the user types in  "CD", "LS" or "PWD" command
         else if (!strncmp(command, "CD", 2) || !strncmp(command, "LS", 2) || !strncmp(command, "PWD", 3))
         {
             command[strcspn(command, "\n")] = 0;
@@ -302,17 +315,17 @@ int main(int argc, char *argv[])
             fflush(stdout);
             printf("%s", response);
         }
-
+        // the user types in  "!LS" command
         else if (!strncmp(command, "!LS", 3))
         {
             system("ls");
         }
-
+        // the user types in  "!PWD" command
         else if (!strncmp(command, "!PWD", 4))
         {
             system("pwd");
         }
-
+        // the user types in  "!CD" command
         else if (!strncmp(command, "!CD", 3))
         {
             char delim[] = " ";
@@ -321,7 +334,7 @@ int main(int argc, char *argv[])
             if (chdir(token) != 0)
                 printf("chdir() to %s failed\n", token);
         }
-
+        // the user types in a command that is none of the above
         else
         {
             printf("Invalid ftp command\n");
@@ -357,6 +370,7 @@ bool is_valid_ip(char *ipString)
     int validCharsSize = strlen(validChars);
     bool valid;
 
+    // check if the IP consists of valid characters 
     for (int i = 0; i < string_size; i++)
     {
         valid = false;
@@ -372,6 +386,7 @@ bool is_valid_ip(char *ipString)
             return false;
     }
 
+    // check the correct position of dots in IP address 
     for (int i = 0; i < string_size; i++)
     {
         if (ipString[i] == '.')
