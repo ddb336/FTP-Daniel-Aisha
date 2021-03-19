@@ -169,32 +169,38 @@ int main(int argc, char *argv[])
                 // printf("File Server port %i \n", put_server_address.sin_port);
                 char message[100];
 
-                fseek(file, 0L, SEEK_END);
-                int file_size = ftell(file);
-                fseek(file, 0L, SEEK_SET);
-
-                send(put_server_fd, &file_size, sizeof(file_size), 0);
-
                 char line[256];
-
-                while (fgets(line, sizeof(line), file) > 0)
+                while (fgets(line, sizeof(line), file) != NULL) //read the file until NULL
                 {
-
-                    if (send(put_server_fd, line, strlen(line), 0) == -1) //send the client response to the server
+                    if (send(put_server_fd, line, sizeof(line), 0) == -1) //send the server response to the client
                     {
                         perror("Error Sending file..\n");
                         break;
                     }
-
                     memset(line, 0, sizeof(line));
                 }
+
+                
+
                 fclose(file);
+
+                //4. close
+                // recv(get_client_fd, response, sizeof(response), 0);
+                // printf("%s\n", response);
+                // printf("here6\n");
+
+                // recv(put_server_fd, response, sizeof(response), 0);
+                // printf("%s\n", response);
+
+                
+                close(put_server_fd);
+
+                exit(0);
                 //close the client socket
 
                 //4. close
-                recv(put_server_fd, response, sizeof(response), 0);
-                printf("%s\n", response);
-                close(put_server_fd);
+                
+                
             }
         }
 
