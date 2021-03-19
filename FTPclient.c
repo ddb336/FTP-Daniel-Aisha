@@ -136,7 +136,8 @@ int main(int argc, char *argv[])
             }
             else
             {
-                send(server_fd, command, strlen(command), 0);
+                memset(response,0,sizeof(response));
+                send(server_fd, command, sizeof(command), 0);
                 recv(server_fd, response, sizeof(response), 0);
 
                 if (!strcmp(response, "Ready for put!"))
@@ -176,6 +177,7 @@ int main(int argc, char *argv[])
                     char line[256];
                     while (fgets(line, sizeof(line), file) != NULL) //read the file until NULL
                     {
+                        
                         if (send(put_server_fd, line, sizeof(line), 0) == -1) //send the server response to the client
                         {
                             perror("Error Sending file..\n");

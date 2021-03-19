@@ -323,7 +323,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 			{
 				memset(response, 0, sizeof(response));
 				strcat(response, "Ready for put!");
-				send(client_fd, response, strlen(response), 0);
+				send(client_fd, response, sizeof(response), 0);
 
 				//forking
 				int pid = fork();
@@ -398,11 +398,9 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					printf("Serverfile : %s \n", server_file);
 					strcpy(filename, server_file);
 
-					recv(put_client_fd, &file_size, sizeof(file_size), 0);
-
 					printf("Creating a file : %s \n", filename);
 					FILE *file;
-					if (!(file = fopen(filename, "a")))
+					if (!(file = fopen(filename, "w")))
 					{
 						perror("Sorry, this file can't be created.");
 						return;
@@ -414,7 +412,7 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 						int myreturn = 0;
 
 						memset(message, 0, sizeof(message));
-						while ((myreturn = recv(put_client_fd, message, sizeof(message), 0)) > 0)
+						while (recv(put_client_fd, message, sizeof(message), 0) > 0)
 						{
 							fputs(message, file);
 							memset(message, 0, sizeof(message));
