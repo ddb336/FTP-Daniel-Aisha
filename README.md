@@ -7,9 +7,14 @@ This project implements a client-server FTP system in C.
 
 ### How to run
 
-For the server, run <code>gcc -o FTPserver FTPserver.c && ./FTPserver</code><br>
+First, run <code>make</code>. This will build the executables. You can put the 
+<code>FTPserver</code> and <code>FTPclient</code> exectuables in different 
+directories if necessary, and then run them by copying the makefile info output 
+example. 
 
-For the client, do <code>gcc -o FTPclient FTPclient.c && ./FTPclient 127.0.0.1 9000</code>. 
+For the server, run <code>./FTPserver</code><br>
+
+For the client, do <code>./FTPclient 127.0.0.1 9000</code>. 
 This will open the client instance and try to connect to local host, which has
 IP address 127.0.0.1, on port 9000, which is the server's default port.
 
