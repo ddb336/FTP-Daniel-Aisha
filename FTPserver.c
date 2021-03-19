@@ -9,41 +9,79 @@
 #include <stdbool.h>
 #include <time.h>
 
-#define NUM_USERS 2
-#define MAX_SOCKETS 30
+#define NUM_USERS 3
+#define MAX_SOCKETS 1024
 
+/*
+ * The serverUser struct saves information about a user.
+ * Usernames and passwords are stored in a serveruser array in the server.
+ * The struct saves their username and password
+ * It also saves their state (logged out, username entered, logged in)
+ * Finally it stores the socket, so that the server can remember that a 
+ * particular socket is logged in
+ */
 struct serverUser
 {
 	char *userName;
 	char *password;
-	int state; // 0 is not yet userrequested, 1 is userrequested (waiting for pass), 2 is authenticated
+	int state; // 0 is not yet userrequested, 1 is userrequested (waiting for
+			   // pass), 2 is authenticated
 	int sock_num;
 };
 
-void serve_client(int client_sd, struct serverUser *auth_users, int *sock_array);
-void close_client(int client_fd, struct serverUser *auth_users, int *sock_array);
+/*
+ * The serve client function deals with requests from clients
+ */
+void serve_client(int client_sd,
+				  struct serverUser *auth_users,
+				  int *sock_array);
+
+/*
+ * The close client function closes a client socket and removes their socket 
+ * number from the serveruser array
+ */
+void close_client(int client_fd,
+				  struct serverUser *auth_users,
+				  int *sock_array);
 
 int main()
 {
-	//0. User data
+	/*
+	 * Here we save the user data, setting the username, password, socket number 
+	 * and state for each authorized user.
+	 */
+
 	struct serverUser auth_users[NUM_USERS];
+
 	auth_users[0].userName = "Aisha";
 	auth_users[0].password = "AHPass";
 	auth_users[0].state = 0;
+	auth_users[0].sock_num = 0;
+
 	auth_users[1].userName = "Daniel";
 	auth_users[1].password = "DBPass";
 	auth_users[1].state = 0;
+	auth_users[1].sock_num = 0;
 
-	//1. sockets
+	auth_users[2].userName = "Khalid";
+	auth_users[2].password = "KMPass";
+	auth_users[2].state = 0;
+	auth_users[2].sock_num = 0;
+
+	/* ---------------------------------------------------------------------- */
+
+	// Creating the server master socket
 	int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-	int sock_array[MAX_SOCKETS] = {0};
-
 	if (server_fd < 0)
 	{
 		perror("Socket: ");
 		return (-1);
 	}
 
+	// Creating the array of sockets that will be used for the select() function
+	int sock_array[MAX_SOCKETS] = {0};
+
+	// Saving the structure for the port that we would like to bind to
 	struct sockaddr_in server_address;
 	memset(&server_address, 0, sizeof(server_address));
 
@@ -51,50 +89,48 @@ int main()
 	server_address.sin_port = htons(9000);
 	server_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1},
+				   sizeof(int)) < 0)
 	{
 		perror("Setsockopt:");
 		return -1;
 	}
 
-	//2. bind
+	// Binding to the port
 	if (bind(server_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
 	{
 		perror("Bind: ");
 		return -1;
 	}
 
-	//3. listen
+	// Listening on the port
 	if (listen(server_fd, 5) < 0)
 	{
 		perror("Listen: ");
 		return -1;
 	}
 
-	//4. accept
-	struct sockaddr_in client_address;				 //we to pass this to accept method to get client info
-	int client_address_len = sizeof(client_address); // accept also needs client_address length
-
-	char client_name[50];
-
+	// The socket set that we will use for the select function
 	fd_set readyfd;
 
 	while (1)
 	{
-		// Clearing the sock set
+		// Clearing the socket set so we can add the sockets back to it
 		FD_ZERO(&readyfd);
 
-		// Adding master socket to set
+		// Adding main server socket to set
 		FD_SET(server_fd, &readyfd);
 		int max_fd = server_fd;
 
 		// Adding child sockets to set
 		for (int i = 0; i < MAX_SOCKETS; i++)
 		{
+			// If the socket
 			if (sock_array[i] > 0)
 			{
 				FD_SET(sock_array[i], &readyfd);
 			}
+			// Getting the maximum socket for max_fd, so we can save new sockets
 			if (sock_array[i] > max_fd)
 			{
 				max_fd = sock_array[i];
@@ -168,88 +204,100 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 	if (recv(client_fd, request, sizeof(request) - 1, 0) > 0)
 	{
 		char *command = strtok(request, delim);
-
-		if (strcmp(command, "USER") == 0)
+		if (!user_authenticated)
 		{
-			if (user_authenticated)
+			if (strcmp(command, "USER") == 0)
 			{
-				strcat(response, "User already logged in.");
-				send(client_fd, response, strlen(response), 0);
-				printf("User %s already logged in.\n", command);
-			}
-
-			command = strtok(NULL, delim); 
-
-			printf("User %s attempting to authenticate.\n", command);
-
-			bool found = false;
-
-			for (int i = 0; i < NUM_USERS; i++)
-			{
-				if (strcmp(auth_users[i].userName, command) == 0)
+				if (user_authenticated)
 				{
-					if (auth_users[i].state == 0)
-					{
-						strcat(response, "331 Username OK, password required!");
-						auth_users[i].state = 1;
-						auth_users[i].sock_num = client_fd;
-						send(client_fd, response, strlen(response), 0);
-						printf("User %s exists. Waiting for PASS.\n", command);
-					}
-					else
-					{
-						strcat(response, "User already logged in.");
-						send(client_fd, response, strlen(response), 0);
-						printf("User %s already logged in.\n", command);
-					}
-					found = true;
+					strcat(response, "User already logged in.");
+					send(client_fd, response, strlen(response), 0);
+					printf("User %s already logged in.\n", command);
 				}
-			}
 
-			if (!found)
-			{
-				strcat(response, "Username does not exist!");
-				send(client_fd, response, strlen(response), 0);
-				printf("User %s does not exist.\n", command);
-			}
-		}
-		else if (strcmp(command, "PASS") == 0)
-		{
-			if (user_authenticated)
-			{
-				strcat(response, "User already logged in.");
-				send(client_fd, response, strlen(response), 0);
-				printf("User %s already logged in.\n", command);
-			}
+				command = strtok(NULL, delim);
 
-			command = strtok(NULL, delim);
+				printf("User %s attempting to authenticate.\n", command);
 
-			for (int i = 0; i < NUM_USERS; i++)
-			{
-				if (auth_users[i].sock_num == client_fd)
+				bool found = false;
+
+				for (int i = 0; i < NUM_USERS; i++)
 				{
-					if (strcmp(command, auth_users[i].password) == 0)
+					if (strcmp(auth_users[i].userName, command) == 0)
 					{
-						strcat(response, "Authentication complete!");
-						send(client_fd, response, strlen(response), 0);
-						printf("User %s authenticated.\n",
-							   auth_users[i].userName);
-						auth_users[i].state = 2;
-					}
-					else
-					{
-						strcat(response, "Incorrect password!");
-						send(client_fd, response, strlen(response), 0);
-						printf("User %s gave incorrect password.\n",
-							   auth_users[i].userName);
+						if (auth_users[i].state == 0)
+						{
+							strcat(response, "331 Username OK, password required!");
+							auth_users[i].state = 1;
+							auth_users[i].sock_num = client_fd;
+							send(client_fd, response, strlen(response), 0);
+							printf("User %s exists. Waiting for PASS.\n", command);
+						}
+						else
+						{
+							strcat(response, "User already logged in.");
+							send(client_fd, response, strlen(response), 0);
+							printf("User %s already logged in.\n", command);
+						}
+						found = true;
 					}
 				}
+
+				if (!found)
+				{
+					strcat(response, "Username does not exist!");
+					send(client_fd, response, strlen(response), 0);
+					printf("User %s does not exist.\n", command);
+				}
+			}
+			else if (strcmp(command, "PASS") == 0)
+			{
+				if (user_authenticated)
+				{
+					strcat(response, "User already logged in.");
+					send(client_fd, response, strlen(response), 0);
+					printf("User %s already logged in.\n", command);
+				}
+
+				command = strtok(NULL, delim);
+
+				for (int i = 0; i < NUM_USERS; i++)
+				{
+					if (auth_users[i].sock_num == client_fd)
+					{
+						if (strcmp(command, auth_users[i].password) == 0)
+						{
+							strcat(response, "Authentication complete!");
+							send(client_fd, response, strlen(response), 0);
+							printf("User %s authenticated.\n",
+								   auth_users[i].userName);
+							auth_users[i].state = 2;
+						}
+						else
+						{
+							strcat(response, "Incorrect password!");
+							send(client_fd, response, strlen(response), 0);
+							printf("User %s gave incorrect password.\n",
+								   auth_users[i].userName);
+						}
+					}
+				}
+			}
+			else if (strcmp(command, "QUIT") == 0 || strcmp(command, "quit") == 0)
+			{
+				close_client(client_fd, auth_users, sock_array);
+			}
+			else
+			{
+				strcat(response, "Authenticate first.\n");
+				send(client_fd, response, strlen(response), 0);
 			}
 		}
-		else if (user_authenticated)
+		else
 		{
 			if (strcmp(command, "PUT") == 0)
 			{
+				memset(response, 0, sizeof(response));
 				strcat(response, "Ready for put!");
 				send(client_fd, response, strlen(response), 0);
 
@@ -258,67 +306,64 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 				if (pid == 0)
 				{
 
-				command = strtok(NULL, delim);
+					command = strtok(NULL, delim);
 
-				printf("File %s is pending to be transfered.\n", command);
+					printf("File %s is pending to be transfered.\n", command);
 
-				int put_server_fd = socket(AF_INET, SOCK_STREAM, 0);
-				if (put_server_fd < 0)
-				{
-					perror("Socket: ");
-					return;
-				}
+					int put_server_fd = socket(AF_INET, SOCK_STREAM, 0);
+					if (put_server_fd < 0)
+					{
+						perror("Socket: ");
+						return;
+					}
 
-				struct sockaddr_in put_server_address;
-				memset(&put_server_address, 0, sizeof(put_server_address));
+					struct sockaddr_in put_server_address;
+					memset(&put_server_address, 0, sizeof(put_server_address));
 
-				put_server_address.sin_family = AF_INET;
-				put_server_address.sin_port = htons(0);
-				put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+					put_server_address.sin_family = AF_INET;
+					put_server_address.sin_port = htons(0);
+					put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
-				if (bind(put_server_fd, (struct sockaddr *)&put_server_address, sizeof(put_server_address)) < 0)
-				{
-					perror("Bind: ");
-					return;
-				}
+					if (bind(put_server_fd, (struct sockaddr *)&put_server_address, sizeof(put_server_address)) < 0)
+					{
+						perror("Bind: ");
+						return;
+					}
 
-				socklen_t len = sizeof(put_server_address);
-				if (getsockname(put_server_fd, (struct sockaddr *)&put_server_address, &len) == -1) {
-				    perror("getsockname");
-				    return;
-				}
+					socklen_t len = sizeof(put_server_address);
+					if (getsockname(put_server_fd, (struct sockaddr *)&put_server_address, &len) == -1)
+					{
+						perror("getsockname");
+						return;
+					}
 
-				if (listen(put_server_fd, 2) < 0)
-				{
-					perror("Listen: ");
-					return;
-				}
+					if (listen(put_server_fd, 2) < 0)
+					{
+						perror("Listen: ");
+						return;
+					}
 
-				int port_num = ntohs(put_server_address.sin_port);
-				printf("Port number here is %i\n", htons(port_num));
-				
-				// sending the port number to the client 
-				send(client_fd, &port_num, sizeof(port_num), 0);
+					int port_num = ntohs(put_server_address.sin_port);
+					printf("Connecting to port %i for file transfer.\n", htons(port_num));
 
+					// sending the port number to the client
+					send(client_fd, &port_num, sizeof(port_num), 0);
 
+					//4. accept
+					struct sockaddr_in put_client_address;				 //we to pass this to accept method to get client info
+					int client_address_len = sizeof(put_client_address); // accept also needs client_address length
 
-				//4. accept
-				struct sockaddr_in put_client_address;				 //we to pass this to accept method to get client info
-				int client_address_len = sizeof(put_client_address); // accept also needs client_address length
+					char put_client_name[50];
 
-				char put_client_name[50];
+					int put_client_fd = accept(put_server_fd, (struct sockaddr *)&put_client_address, (socklen_t *)&client_address_len);
+					char message[100];
+					inet_ntop(AF_INET, &put_client_address.sin_addr, put_client_name, sizeof(put_client_name));
 
-				int put_client_fd = accept(put_server_fd, (struct sockaddr *)&put_client_address, (socklen_t *)&client_address_len);
-				char message[100];
-				inet_ntop(AF_INET, &put_client_address.sin_addr, put_client_name, sizeof(put_client_name));
-
-				if (put_client_fd < 0)
-				{
-					perror("Accept: ");
-					return;
-				}
-
-				
+					if (put_client_fd < 0)
+					{
+						perror("Accept: ");
+						return;
+					}
 
 					char filename[50];
 					int file_size = 0;
@@ -340,24 +385,20 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					}
 					else
 					{
-
 						char message[256];
 
-						printf("Will write now");
+						int myreturn = 0;
 
-	                    int myreturn = 0;
+						memset(message, 0, sizeof(message));
+						while ((myreturn = recv(put_client_fd, message, sizeof(message), 0)) > 0)
+						{
+							fputs(message, file);
+							memset(message, 0, sizeof(message));
+						}
 
-	                    memset(message,0,sizeof(message));
-	                    while ((myreturn = recv(put_client_fd, message, sizeof(message), 0)) > 0)
-	                    {
-	                        fputs(message, file);
-	                        memset(message, 0, sizeof(message));
-	                    }
+						fclose(file);
 
-	                
-                    fclose(file);
-
-					// send(put_client_fd, "PUT function completed. \n", strlen("PUT function completed. \n"), 0);
+						printf("PUT function completed.\n");
 					}
 
 					fflush(stdout);
@@ -365,15 +406,12 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					// strcat(response, "Transfer of the file done.");
 					// send(put_client_fd, response, strlen(response), 0);
 
-					
-
 					close(put_client_fd);
 					close(put_server_fd);
 
 					exit(0);
 				}
 
-				
 				return;
 
 			} //ending PUT
@@ -400,76 +438,69 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 					int pid = fork();
 					if (pid == 0)
 					{
-					memset(response, 0, sizeof(response));
-					strcpy(response, "Existent");
-					send(client_fd, response, sizeof(response), 0);
+						memset(response, 0, sizeof(response));
+						strcpy(response, "Existent");
+						send(client_fd, response, sizeof(response), 0);
 
-					int get_server_fd = socket(AF_INET, SOCK_STREAM, 0);
-					if (get_server_fd < 0)
-					{
-						perror("Socket: ");
-						return;
-					}
+						int get_server_fd = socket(AF_INET, SOCK_STREAM, 0);
+						if (get_server_fd < 0)
+						{
+							perror("Socket: ");
+							return;
+						}
 
-					struct sockaddr_in get_server_address;
-					memset(&get_server_address, 0, sizeof(get_server_address));
+						struct sockaddr_in get_server_address;
+						memset(&get_server_address, 0, sizeof(get_server_address));
 
+						get_server_address.sin_family = AF_INET;
+						get_server_address.sin_port = htons(0);
+						get_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
-					get_server_address.sin_family = AF_INET;
-					get_server_address.sin_port = htons(0);
-					get_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+						if (bind(get_server_fd, (struct sockaddr *)&get_server_address, sizeof(get_server_address)) < 0)
+						{
+							perror("Bind: ");
+							return;
+						}
 
-					if (bind(get_server_fd, (struct sockaddr *)&get_server_address, sizeof(get_server_address)) < 0)
-					{
-						perror("Bind: ");
-						return;
-					}
+						socklen_t len = sizeof(get_server_address);
+						if (getsockname(get_server_fd, (struct sockaddr *)&get_server_address, &len) == -1)
+						{
+							perror("getsockname");
+							return;
+						}
 
-					socklen_t len = sizeof(get_server_address);
-					if (getsockname(get_server_fd, (struct sockaddr *)&get_server_address, &len) == -1) {
-					    perror("getsockname");
-					    return;
-					}
+						if (listen(get_server_fd, 2) < 0)
+						{
+							perror("Listen: ");
+							return;
+						}
 
-					if (listen(get_server_fd, 2) < 0)
-					{
-						perror("Listen: ");
-						return;
-					}
+						int port_num = ntohs(get_server_address.sin_port);
+						printf("Port number here is %i\n", htons(port_num));
 
-					int port_num = ntohs(get_server_address.sin_port);
-					printf("Port number here is %i\n", htons(port_num));
-					
-					// sending the port number to the client 
-					send(client_fd, &port_num, sizeof(port_num), 0);
-					
+						// sending the port number to the client
+						send(client_fd, &port_num, sizeof(port_num), 0);
 
-					//2. bind
-					
+						//2. bind
 
-					
+						// finding the available port number to send to the client
 
-					// finding the available port number to send to the client 
-					
-					//4. accept
-					struct sockaddr_in get_client_address;				 //we to pass this to accept method to get client info
-					int client_address_len = sizeof(get_client_address); // accept also needs client_address length
+						//4. accept
+						struct sockaddr_in get_client_address;				 //we to pass this to accept method to get client info
+						int client_address_len = sizeof(get_client_address); // accept also needs client_address length
 
-					char get_client_name[50];
+						char get_client_name[50];
 
-					int get_client_fd = accept(get_server_fd, (struct sockaddr *)&get_client_address, (socklen_t *)&client_address_len);
-					char message[100];
-					inet_ntop(AF_INET, &get_client_address.sin_addr, get_client_name, sizeof(get_client_name));
+						int get_client_fd = accept(get_server_fd, (struct sockaddr *)&get_client_address, (socklen_t *)&client_address_len);
+						char message[100];
+						inet_ntop(AF_INET, &get_client_address.sin_addr, get_client_name, sizeof(get_client_name));
 
+						if (get_client_fd < 0)
+						{
+							perror("Accept: ");
+							return;
+						}
 
-
-					if (get_client_fd < 0)
-					{
-						perror("Accept: ");
-						return;
-					}
-
-					
 						char line[256];
 						while (fgets(line, sizeof(line), file) != NULL) //read the file until NULL
 						{
@@ -493,7 +524,6 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 
 						exit(0);
 					}
-
 
 					return;
 				}
@@ -531,35 +561,30 @@ void serve_client(int client_fd, struct serverUser *auth_users, int *sock_array)
 				}
 
 				send(client_fd, response, strlen(response), 0);
-			} 
-			else if (strcmp(command, "CD") == 0) 
+			}
+			else if (strcmp(command, "CD") == 0)
 			{
-	            char *token = strtok(NULL, delim);
-	            if (chdir(token) != 0) 
-	            {
-	            	strcat(response, "Directory change unsuccessful.\n");
+				char *token = strtok(NULL, delim);
+				if (chdir(token) != 0)
+				{
+					strcat(response, "Directory change unsuccessful.\n");
 					send(client_fd, response, strlen(response), 0);
-	            } else 
-	            {
-	            	strcat(response, "Successfully changed directory.\n");
+				}
+				else
+				{
+					strcat(response, "Successfully changed directory.\n");
 					send(client_fd, response, strlen(response), 0);
-	            }
+				}
+			}
+			else if (strcmp(command, "QUIT") == 0 || strcmp(command, "quit") == 0)
+			{
+				close_client(client_fd, auth_users, sock_array);
 			}
 			else
 			{
 				strcat(response, "Authenticate first.\n");
 				send(client_fd, response, strlen(response), 0);
 			}
-		}
-
-		else if (strcmp(command, "QUIT") == 0 || strcmp(command, "quit") == 0)
-		{
-			close_client(client_fd, auth_users, sock_array);
-		}
-		else
-		{
-			strcat(response, "Authenticate first.\n");
-			send(client_fd, response, strlen(response), 0);
 		}
 	}
 	else

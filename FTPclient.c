@@ -128,65 +128,76 @@ int main(int argc, char *argv[])
             ptr = strtok(NULL, delim);
             strcpy(filename, ptr);
 
+            if (!fopen(filename, "r")) 
+            {
+                printf("File doesn't exist.\n");
+                continue;
+            }
+
             send(server_fd, command, strlen(command), 0);
             recv(server_fd, response, sizeof(response), 0);
 
-            if (!strcmp(response, "Ready for put!")) {
-                FILE *file;
-            if (!(file = fopen(filename, "r")))
+            if (!strcmp(response, "Ready for put!"))
             {
-                perror("File cant be opened..");
+                FILE *file;
+                if (!(file = fopen(filename, "r")))
+                {
+                    perror("File can't be opened..");
+                }
+                else
+                {
+                    printf("Sending file : %s \n", filename);
+
+                    int put_server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+                    if (put_server_fd < 0)
+                    {
+                        perror("Socket: ");
+                        return -1;
+                    }
+
+                    struct sockaddr_in put_server_address;
+                    memset(&put_server_address, 0, sizeof(put_server_address));
+
+                    int port_num;
+                    recv(server_fd, &port_num, sizeof(port_num), 0);
+
+                    put_server_address.sin_family = AF_INET;
+                    put_server_address.sin_port = htons(port_num);
+                    put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+                    printf("Connecting to port %i for file transfer.\n", put_server_address.sin_port);
+
+                    //2 connect
+                    if (connect(put_server_fd, (struct sockaddr *)&put_server_address, sizeof(put_server_address)) < 0)
+                    {
+                        perror("Connect :");
+
+                        return -1;
+                    }
+
+                    // printf("File Server port %i \n", put_server_address.sin_port);
+                    char message[100];
+
+                    char line[256];
+                    while (fgets(line, sizeof(line), file) != NULL) //read the file until NULL
+                    {
+                        if (send(put_server_fd, line, sizeof(line), 0) == -1) //send the server response to the client
+                        {
+                            perror("Error Sending file..\n");
+                            break;
+                        }
+                        memset(line, 0, sizeof(line));
+                    }
+
+                    fclose(file);
+
+                    printf("PUT function completed.\n");
+
+                    close(put_server_fd);
+                }
             }
             else
             {
-                printf("Sending file : %s \n", filename);
-
-                int put_server_fd = socket(AF_INET, SOCK_STREAM, 0);
-
-                if (put_server_fd < 0)
-                {
-                    perror("Socket: ");
-                    return -1;
-                }
-
-                struct sockaddr_in put_server_address;
-                memset(&put_server_address, 0, sizeof(put_server_address));
-
-                int port_num;
-                recv(server_fd, &port_num, sizeof(port_num), 0);
-
-                put_server_address.sin_family = AF_INET;
-                put_server_address.sin_port = htons(port_num);
-                put_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-                printf("File Server port %i \n", put_server_address.sin_port);
-
-                //2 connect
-                if (connect(put_server_fd, (struct sockaddr *)&put_server_address, sizeof(put_server_address)) < 0)
-                {
-                    perror("Connect :");
-
-                    return -1;
-                }
-
-                // printf("File Server port %i \n", put_server_address.sin_port);
-                char message[100];
-
-                char line[256];
-                while (fgets(line, sizeof(line), file) != NULL) //read the file until NULL
-                {
-                    if (send(put_server_fd, line, sizeof(line), 0) == -1) //send the server response to the client
-                    {
-                        perror("Error Sending file..\n");
-                        break;
-                    }
-                    memset(line, 0, sizeof(line));
-                }
-
-                fclose(file);
-                
-                close(put_server_fd);
-            }
-            } else {
                 printf("%s", response);
             }
         }
@@ -195,11 +206,11 @@ int main(int argc, char *argv[])
         {
             command[strcspn(command, "\n")] = 0;
             send(server_fd, command, strlen(command), 0);
-            memset(response,  0,  sizeof(response));
+            memset(response, 0, sizeof(response));
             recv(server_fd, response, sizeof(response), 0);
             if (strcmp(response, "Nonexistent") == 0)
             {
-                printf("There's no such file on the server.");
+                printf("There's no such file on the server.\n");
             }
             else if (strcmp(response, "Existent") == 0)
             {
@@ -225,7 +236,6 @@ int main(int argc, char *argv[])
                 get_server_address.sin_addr.s_addr = htonl(INADDR_ANY);
                 printf("File Server port %i \n", get_server_address.sin_port);
 
-
                 //2 connect
                 if (connect(get_server_fd, (struct sockaddr *)&get_server_address, sizeof(get_server_address)) < 0)
                 {
@@ -233,7 +243,6 @@ int main(int argc, char *argv[])
 
                     return -1;
                 }
-
 
                 // GETTING file from the server
                 char delim[] = " ";
@@ -257,17 +266,14 @@ int main(int argc, char *argv[])
                 {
                     char message[256];
 
-
-
                     int myreturn = 0;
 
-                    memset(message,0,sizeof(message));
+                    memset(message, 0, sizeof(message));
                     while ((myreturn = recv(get_server_fd, message, sizeof(message), 0)) > 0)
                     {
                         fputs(message, file);
                         memset(message, 0, sizeof(message));
                     }
-
 
                     fclose(file);
                 }
@@ -282,7 +288,9 @@ int main(int argc, char *argv[])
                 printf("Transfer of the file %s done. New file is saved as %s. \nPort closed. \n", filenm, client_file);
 
                 close(get_server_fd);
-            } else {
+            }
+            else
+            {
                 printf("%s", response);
             }
 
@@ -301,7 +309,7 @@ int main(int argc, char *argv[])
         else if (!strncmp(command, "!LS", 3))
         {
             system("ls");
-        }       
+        }
 
         else if (!strncmp(command, "!PWD", 4))
         {
@@ -313,7 +321,8 @@ int main(int argc, char *argv[])
             char delim[] = " ";
             char *token = strtok(command, delim);
             token = strtok(NULL, delim);
-            if (chdir(token) != 0) printf("chdir() to %s failed\n",token); 
+            if (chdir(token) != 0)
+                printf("chdir() to %s failed\n", token);
         }
 
         else
